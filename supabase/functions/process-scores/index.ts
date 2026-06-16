@@ -7,47 +7,9 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-// Interfaces estritas para a API football-data.org
-interface Team {
-  id: number | null;
-  name: string | null;
-  shortName: string | null;
-  tla: string | null;
-  crest: string | null;
-}
-
-interface ScoreData {
-  home: number | null;
-  away: number | null;
-}
-
-interface MatchScore {
-  winner: string | null;
-  duration: string;
-  fullTime: ScoreData;
-  halfTime: ScoreData;
-}
-
-interface ApiMatch {
-  id: number;
-  utcDate: string;
-  status: string;
-  matchday: number | null;
-  stage: string;
-  group: string | null;
-  homeTeam: Team;
-  awayTeam: Team;
-  score: MatchScore;
-}
-
-interface ApiResponse {
-  matches: ApiMatch[];
-}
-
 serve(async (req) => {
-  if (req.method === "OPTIONS") {
+  if (req.method === "OPTIONS")
     return new Response("ok", { headers: corsHeaders });
-  }
 
   try {
     const supabase = createClient(
@@ -55,33 +17,14 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
     );
 
-    console.log("Iniciando consumo da API football-data.org...");
-
+    // BUSCA TODO O TORNEIO (Removido o filtro ?date=${today})
     const response = await fetch(
       "https://api.football-data.org/v4/competitions/WC/matches",
-      {
-        headers: {
-          "X-Auth-Token": Deno.env.get("API_FOOTBALL_KEY") ?? "",
-        },
-      },
+      { headers: { "X-Auth-Token": Deno.env.get("API_FOOTBALL_KEY") ?? "" } },
     );
 
-    const data: ApiResponse = await response.json();
-
-    // Trava de Segurança: Verifica se a API retornou um erro em vez da lista
-    if (!data.matches) {
-      console.error("A API bloqueou a requisição. Detalhes:", data);
-      return new Response(
-        JSON.stringify({
-          error: "Falha ao buscar dados na API",
-          detalhes: data,
-        }),
-        {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-          status: 400,
-        },
-      );
-    }
+    if (response.status === 429) throw new Error("Limite da API excedido");
+    const data = await response.json();
 
     const traducaoFase: Record<string, string> = {
       GROUP_STAGE: "Fase de Grupos",
@@ -109,146 +52,199 @@ serve(async (req) => {
     };
 
     const traducaoTimes: Record<string, string> = {
+      // Países-sede
+      Canada: "Canadá",
       "United States": "Estados Unidos",
-      "South Korea": "Coreia do Sul",
-      Czechia: "República Tcheca",
-      "Bosnia-Herzegovina": "Bósnia e Herzegovina",
-      Switzerland: "Suíça",
-      Morocco: "Marrocos",
-      Scotland: "Escócia",
-      Turkey: "Turquia",
-      Germany: "Alemanha",
-      Netherlands: "Holanda",
-      Japan: "Japão",
-      "Ivory Coast": "Costa do Marfim",
-      Ecuador: "Equador",
-      Sweden: "Suécia",
-      Tunisia: "Tunísia",
-      Spain: "Espanha",
-      "Cape Verde Islands": "Cabo Verde",
-      Belgium: "Bélgica",
-      Egypt: "Egito",
-      "Saudi Arabia": "Arábia Saudita",
-      Uruguay: "Uruguai",
-      Iran: "Irã",
-      "New Zealand": "Nova Zelândia",
-      France: "França",
-      Senegal: "Senegal",
-      Norway: "Noruega",
-      Argentina: "Argentina",
-      Algeria: "Argélia",
-      Austria: "Áustria",
-      Jordan: "Jordânia",
-      Portugal: "Portugal",
-      "Congo DR": "República Democrática do Congo",
-      England: "Inglaterra",
-      Croatia: "Croácia",
-      Ghana: "Gana",
-      Panama: "Panamá",
-      Uzbekistan: "Uzbequistão",
-      Colombia: "Colômbia",
       Mexico: "México",
-      "South Africa": "África do Sul",
-      Qatar: "Catar",
-      Haiti: "Haiti",
-      Australia: "Austrália",
-      Curaçao: "Curaçao",
+
+      // CONMEBOL
+      Argentina: "Argentina",
       Brazil: "Brasil",
-      Iraq: "Iraque",
+      Ecuador: "Equador",
+      Uruguay: "Uruguai",
+      Colombia: "Colômbia",
       Paraguay: "Paraguai",
+
+      // UEFA
+      Germany: "Alemanha",
+      Austria: "Áustria",
+      Belgium: "Bélgica",
+      Croatia: "Croácia",
+      Spain: "Espanha",
+      France: "França",
+      England: "Inglaterra",
+      Norway: "Noruega",
+      Netherlands: "Holanda",
+      Portugal: "Portugal",
+      Switzerland: "Suíça",
+      "Bosnia and Herzegovina": "Bósnia e Herzegovina",
+      Scotland: "Escócia",
+      "Czech Republic": "República Tcheca",
+      Sweden: "Suécia",
+      Turkey: "Turquia",
+
+      // CAF
+      "South Africa": "África do Sul",
+      Algeria: "Argélia",
+      "Cape Verde": "Cabo Verde",
+      "Ivory Coast": "Costa do Marfim",
+      Egypt: "Egito",
+      Ghana: "Gana",
+      Morocco: "Marrocos",
+      Senegal: "Senegal",
+      Tunisia: "Tunísia",
+
+      // AFC
+      "Saudi Arabia": "Arábia Saudita",
+      Australia: "Austrália",
+      Qatar: "Catar",
+      "South Korea": "Coreia do Sul",
+      "United Arab Emirates": "Emirados Árabes Unidos",
+      Iran: "Irã",
+      Japan: "Japão",
+      Uzbekistan: "Uzbequistão",
+
+      // CONCACAF
+      Curacao: "Curaçao",
+      Haiti: "Haiti",
+      Panama: "Panamá",
+
+      // OFC
+      "New Zealand": "Nova Zelândia",
+
+      // Repescagem
+      Iraq: "Iraque",
+      "DR Congo": "RD Congo",
     };
 
     const traducaoSiglas: Record<string, string> = {
+      CAN: "CAN",
       USA: "EUA",
+      MEX: "MEX",
+
+      ARG: "ARG",
+      BRA: "BRA",
+      ECU: "EQU",
+      URU: "URU",
+      COL: "COL",
+      PAR: "PAR",
+
       GER: "ALE",
+      AUT: "AUT",
+      BEL: "BEL",
+      CRO: "CRO",
+      ESP: "ESP",
+      FRA: "FRA",
+      ENG: "ING",
+      NOR: "NOR",
       NED: "HOL",
+      POR: "POR",
+      SUI: "SUI",
+      BIH: "BOS",
+      SCO: "ESC",
+      CZE: "RTC",
+      SWE: "SUE",
+      TUR: "TUR",
+
       RSA: "AFS",
-      KOR: "CDS",
+      ALG: "ARG",
+      CPV: "CBV",
+      CIV: "CDM",
+      EGY: "EGI",
+      GHA: "GAN",
+      MAR: "MAR",
+      SEN: "SEN",
+      TUN: "TUN",
+
+      KSA: "ARA",
+      AUS: "AUS",
+      QAT: "CAT",
+      KOR: "COR",
+      UAE: "EAU",
+      IRN: "IRA",
       JPN: "JAP",
-      // Siglas que não mudam (como BRA, ARG, POR) não precisam entrar aqui devido ao fallback
+      UZB: "UZB",
+
+      CUW: "CUR",
+      HAI: "HAI",
+      PAN: "PAN",
+
+      NZL: "NZL",
+
+      IRQ: "IRQ",
+      COD: "RDC",
     };
 
-    // Se passou da trava, o loop continua normalmente
     for (const match of data.matches) {
-      // 1. Mapeamento de Dados da Partida
+      // Lógica de "A Definir"
+      const isAdefinir = !match.homeTeam.name || !match.awayTeam.name;
+
       const partidaData = {
         torneio_id: "cafed0d3-9ed5-4e61-a429-9cd82ebda0c2",
-        time_a: match.homeTeam.name
-          ? traducaoTimes[match.homeTeam.name] || match.homeTeam.name
-          : "A Definir",
-        time_b: match.awayTeam.name
-          ? traducaoTimes[match.awayTeam.name] || match.awayTeam.name
-          : "A Definir",
+        time_a: isAdefinir
+          ? "A Definir"
+          : traducaoTimes[match.homeTeam.name!] || match.homeTeam.name,
+        time_b: isAdefinir
+          ? "A Definir"
+          : traducaoTimes[match.awayTeam.name!] || match.awayTeam.name,
         data_inicio: match.utcDate,
         fase: traducaoFase[match.stage] || match.stage,
         estagio: traducaoFase[match.stage] || match.stage,
         grupo: match.group ? traducaoGrupo[match.group] || match.group : null,
-        emblema_mandante: match.homeTeam.crest,
-        emblema_visitante: match.awayTeam.crest,
-        sigla_mandante: match.homeTeam.tla
-          ? traducaoSiglas[match.homeTeam.tla] || match.homeTeam.tla
-          : null,
-        sigla_visitante: match.awayTeam.tla
-          ? traducaoSiglas[match.awayTeam.tla] || match.awayTeam.tla
-          : null,
+        emblema_mandante: isAdefinir ? null : match.homeTeam.crest,
+        emblema_visitante: isAdefinir ? null : match.awayTeam.crest,
+        sigla_mandante: isAdefinir
+          ? null
+          : traducaoSiglas[match.homeTeam.tla!] || match.homeTeam.tla,
+        sigla_visitante: isAdefinir
+          ? null
+          : traducaoSiglas[match.awayTeam.tla!] || match.awayTeam.tla,
         status: match.status,
-        placar_a: match.score.fullTime?.home ?? null,
-        placar_b: match.score.fullTime?.away ?? null,
+        placar_a: match.score.fullTime.home ?? null,
+        placar_b: match.score.fullTime.away ?? null,
       };
 
-      // 2. Atualizar ou Inserir a Partida (Sync de Calendário)
-      const { data: existingPartida } = await supabase
+      await supabase
         .from("partidas")
-        .select("id")
-        .eq("external_id", match.id)
-        .single();
+        .upsert(
+          { external_id: match.id, ...partidaData },
+          { onConflict: "external_id" },
+        );
 
-      if (existingPartida) {
-        await supabase
-          .from("partidas")
-          .update(partidaData)
-          .eq("id", existingPartida.id);
-      } else {
-        await supabase
-          .from("partidas")
-          .insert({ ...partidaData, external_id: match.id });
-      }
-
-      console.log(
-        `Partida sincronizada: ${partidaData.time_a} vs ${partidaData.time_b} | Status: ${match.status}`,
-      );
-
-      // 3. Processamento de Palpites (Apenas para jogos finalizados)
       if (match.status === "FINISHED") {
         const realA = match.score.fullTime.home ?? 0;
         const realB = match.score.fullTime.away ?? 0;
         const realWinner = realA > realB ? "A" : realB > realA ? "B" : "DRAW";
 
-        const { data: palpites, error: pError } = await supabase
+        const { data: palpites } = await supabase
           .from("palpites")
-          .select("*, partidas!inner(time_a, time_b, fase)")
+          .select("*, partidas!inner(external_id)")
           .eq("partidas.external_id", match.id)
           .eq("pontos_ganhos", 0);
 
-        if (pError || !palpites) continue;
-
-        for (const palpite of palpites) {
+        for (const palpite of palpites || []) {
           let pontos = 0;
           let detalhe = "Errou o palpite";
-          const pA = palpite.palpite_a;
-          const pB = palpite.palpite_b;
-          const palpiteWinner = pA > pB ? "A" : pB > pA ? "B" : "DRAW";
+          const pWinner =
+            palpite.palpite_a > palpite.palpite_b
+              ? "A"
+              : palpite.palpite_b > palpite.palpite_a
+                ? "B"
+                : "DRAW";
 
-          if (pA === realA && pB === realB) {
+          if (palpite.palpite_a === realA && palpite.palpite_b === realB) {
             pontos = 7;
             detalhe = "Acertou o placar exato";
-          } else if (palpiteWinner === realWinner) {
+          } else if (pWinner === realWinner) {
             pontos = 4;
             detalhe = "Acertou o vencedor";
-          } else if (pA === realB && pB === realA && pA !== pB) {
+          } else if (
+            palpite.palpite_a === realB &&
+            palpite.palpite_b === realA
+          ) {
             pontos = 2;
             detalhe = "Acertou o placar invertido";
-          } else if (pA - pB === realA - realB) {
+          } else if (palpite.palpite_a - palpite.palpite_b === realA - realB) {
             pontos = 1;
             detalhe = "Acertou o saldo de gols";
           }
@@ -258,32 +254,25 @@ serve(async (req) => {
               .from("palpites")
               .update({ pontos_ganhos: pontos, detalhe_pontuacao: detalhe })
               .eq("id", palpite.id);
-
             await supabase.rpc("increment_user_score", {
               user_id: palpite.usuario_id,
               score_to_add: pontos,
             });
-
-            console.log(
-              `Usuário ${palpite.usuario_id} ganhou ${pontos} pontos. Motivo: ${detalhe}`,
-            );
           }
         }
       }
     }
 
     return new Response(
-      JSON.stringify({ message: "Sincronização e Processamento concluídos" }),
+      JSON.stringify({ message: "Sincronização concluída" }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
       },
     );
   } catch (error) {
-    console.error("Erro na Edge Function:", error);
     return new Response(JSON.stringify({ error: error.message }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 400,
+      status: 500,
     });
   }
 });
