@@ -1,195 +1,128 @@
-import React, { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "../services/supabaseClient";
-import type { Partida, Palpite } from "../types/database";
-import { differenceInMinutes, parseISO, format } from "date-fns";
-import { ptBR } from "date-fns/locale";
-import { Lock, CalendarOff } from "lucide-react";
 import "./MatchList.css";
 
-export const MatchList: React.FC<{ userId: string }> = ({ userId }) => {
-  const [partidas, setPartidas] = useState<Partida[]>([]);
-  const [palpites, setPalpites] = useState<Record<string, Palpite>>({});
+export function MatchList({ userId }: { userId: string }) {
+  const [dataFoco, setDataFoco] = useState<string>(
+    new Date().toISOString().split("T")[0],
+  );
+  const [partidas, setPartidas] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchData();
-  }, [userId]);
+    async function carregarPartidas() {
+      setLoading(true);
+      const startOfDay = `${dataFoco}T00:00:00-03:00`;
+      const endOfDay = `${dataFoco}T23:59:59-03:00`;
 
-  const fetchData = async () => {
-    setLoading(true);
-    // 1. Buscar partidas (ex: próximas 48h ou do torneio ativo)
-    const { data: matches } = await supabase
-      .from("partidas")
-      .select("*")
-      .order("data_inicio", { ascending: true });
+      const { data } = await supabase
+        .from("partidas")
+        .select(`*, palpites (palpite_a, palpite_b)`)
+        .eq("palpites.usuario_id", userId)
+        .gte("data_inicio", startOfDay)
+        .lte("data_inicio", endOfDay)
+        .order("data_inicio", { ascending: true });
 
-    // 2. Buscar palpites existentes do usuário
-    const { data: predictions } = await supabase
-      .from("palpites")
-      .select("*")
-      .eq("usuario_id", userId);
+      setPartidas(data || []);
+      setLoading(false);
+    }
+    carregarPartidas();
+  }, [dataFoco, userId]);
 
-    if (matches) setPartidas(matches);
-
-    const predictionsMap: Record<string, Palpite> = {};
-    predictions?.forEach((p) => {
-      predictionsMap[p.partida_id] = p;
-    });
-    setPalpites(predictionsMap);
-    setLoading(false);
+  const alterarData = (dias: number) => {
+    const novaData = new Date(dataFoco + "T12:00:00");
+    novaData.setDate(novaData.getDate() + dias);
+    setDataFoco(novaData.toISOString().split("T")[0]);
   };
-
-  const handleSavePalpite = async (partidaId: string) => {
-    const palpite = palpites[partidaId];
-    if (!palpite || palpite.palpite_a === "" || palpite.palpite_b === "")
-      return;
-
-    const { error } = await supabase.from("palpites").upsert({
-      ...palpite,
-      usuario_id: userId,
-      partida_id: partidaId,
-      updated_at: new Date().toISOString(),
-    });
-
-    if (error) alert("Erro ao salvar: " + error.message);
-    else alert("Palpite salvo com sucesso!");
-  };
-
-  const updateLocalPalpite = (
-    partidaId: string,
-    field: keyof Palpite,
-    value: any,
-  ) => {
-    setPalpites((prev) => ({
-      ...prev,
-      [partidaId]: {
-        ...(prev[partidaId] || {
-          partida_id: partidaId,
-          palpite_a: "",
-          palpite_b: "",
-        }),
-        [field]: value,
-      },
-    }));
-  };
-
-  if (loading) return <div className="loading">Carregando jogos...</div>;
-
-  // Empty State
-  if (partidas.length === 0) {
-    return (
-      <div className="empty-state">
-        <CalendarOff size={3} color="var(--text-muted)" />
-        <h2>Nenhum jogo agendado</h2>
-        <p>
-          Não há partidas previstas para os próximos dias. Aproveite a pausa!
-        </p>
-      </div>
-    );
-  }
 
   return (
     <div className="match-list">
-      {partidas.map((match) => {
-        const dataInicio = parseISO(match.data_inicio);
-        const isLocked = differenceInMinutes(dataInicio, new Date()) <= 30;
-        const palpite = palpites[match.id] || { palpite_a: "", palpite_b: "" };
-        const isDraw =
-          palpite.palpite_a !== "" && palpite.palpite_a === palpite.palpite_b;
-        const showPenalty = match.fase !== "grupos" && isDraw;
+      <div className="date-navigator">
+        <button onClick={() => alterarData(-1)} className="nav-btn">
+          <img src="src/assets/arrow-left.svg" alt="Anterior" />
+        </button>
+        <input
+          type="date"
+          value={dataFoco}
+          onChange={(e) => setDataFoco(e.target.value)}
+          className="date-input"
+        />
+        <button onClick={() => alterarData(1)} className="nav-btn">
+          <img src="src/assets/arrow-right.svg" alt="Próximo" />
+        </button>
+      </div>
 
-        return (
-          <article
-            key={match.id}
-            className={`match-card ${isLocked ? "locked" : ""}`}
-          >
-            <header className="match-info">
-              <span className="fase-tag">{match.fase.toUpperCase()}</span>
-              <time>
-                {format(dataInicio, "dd/MM 'às' HH:mm", { locale: ptBR })}
-              </time>
-              {isLocked && <Lock size={1} className="lock-icon" />}
-            </header>
+      {loading ? (
+        <p className="loading">Carregando...</p>
+      ) : partidas.length === 0 ? (
+        <div className="empty-state">
+          <h2>Sem jogos agendados para este dia.</h2>
+        </div>
+      ) : (
+        partidas.map((p) => {
+          const agora = new Date().getTime();
+          const horaJogo = new Date(p.data_inicio).getTime();
+          const bloqueado = agora >= horaJogo - 10 * 60000; // Bloqueia 10min antes
 
-            <div className="scoreboard">
-              <div className="team">
-                <span className="team-name">{match.time_a}</span>
-              </div>
-
-              <div className="inputs">
-                <input
-                  type="number"
-                  min="0"
-                  value={palpite.palpite_a}
-                  disabled={isLocked}
-                  onChange={(e) =>
-                    updateLocalPalpite(
-                      match.id,
-                      "palpite_a",
-                      parseInt(e.target.value) || 0,
-                    )
-                  }
-                />
-                <span className="vs">X</span>
-                <input
-                  type="number"
-                  min="0"
-                  value={palpite.palpite_b}
-                  disabled={isLocked}
-                  onChange={(e) =>
-                    updateLocalPalpite(
-                      match.id,
-                      "palpite_b",
-                      parseInt(e.target.value) || 0,
-                    )
-                  }
-                />
-              </div>
-
-              <div className="team">
-                <span className="team-name">{match.time_b}</span>
-              </div>
-            </div>
-
-            {showPenalty && (
-              <div className="penalty-box">
-                <label htmlFor={`penalty-${match.id}`}>
-                  Quem vence nos pênaltis?
-                </label>
-                <select
-                  id={`penalty-${match.id}`}
-                  value={palpite.vencedor_penaltis_palpite || ""}
-                  disabled={isLocked}
-                  required
-                  onChange={(e) =>
-                    updateLocalPalpite(
-                      match.id,
-                      "vencedor_penaltis_palpite",
-                      e.target.value,
-                    )
-                  }
-                >
-                  <option value="">Selecione...</option>
-                  <option value={match.time_a}>{match.time_a}</option>
-                  <option value={match.time_b}>{match.time_b}</option>
-                </select>
-              </div>
-            )}
-
-            <button
-              className="btn-save"
-              disabled={
-                isLocked ||
-                palpite.palpite_a === "" ||
-                (showPenalty && !palpite.vencedor_penaltis_palpite)
-              }
-              onClick={() => handleSavePalpite(match.id)}
+          return (
+            <div
+              key={p.id}
+              className={`match-card ${bloqueado ? "locked" : ""}`}
             >
-              {isLocked ? "Palpites Encerrados" : "Salvar Palpite"}
-            </button>
-          </article>
-        );
-      })}
+              <div className="match-info">
+                <span className="fase-tag">{p.fase}</span>
+                <span>
+                  {new Date(p.data_inicio).toLocaleTimeString("pt-BR", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </span>
+              </div>
+
+              <div className="scoreboard">
+                <div className="team">
+                  <img
+                    src={p.emblema_mandante}
+                    alt={p.time_a}
+                    className="flag"
+                  />
+                  <div className="team-name">{p.time_a}</div>
+                </div>
+                <div className="inputs">
+                  <input
+                    type="number"
+                    disabled={bloqueado}
+                    defaultValue={p.palpites?.[0]?.palpite_a}
+                  />
+                  <span>x</span>
+                  <input
+                    type="number"
+                    disabled={bloqueado}
+                    defaultValue={p.palpites?.[0]?.palpite_b}
+                  />
+                </div>
+                <div className="team">
+                  <img
+                    src={p.emblema_visitante}
+                    alt={p.time_b}
+                    className="flag"
+                  />
+                  <div className="team-name">{p.time_b}</div>
+                </div>
+              </div>
+
+              {/* Resultado Oficial (Exibido se o jogo já começou ou terminou) */}
+              {agora >= horaJogo && (
+                <div className="official-result">
+                  <span>
+                    Placar Oficial: {p.placar_a ?? "-"} x {p.placar_b ?? "-"}
+                  </span>
+                </div>
+              )}
+            </div>
+          );
+        })
+      )}
     </div>
   );
-};
+}

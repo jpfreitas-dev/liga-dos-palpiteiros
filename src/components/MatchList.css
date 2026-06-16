@@ -1,10 +1,39 @@
 .match-list {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 1rem;
   padding: 1rem;
-  max-width: 37.5rem; /* 600px */
+  max-width: 37.5rem;
   margin: 0 auto;
+}
+
+.date-navigator {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--surface);
+  padding: 0.75rem;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+.nav-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+}
+.nav-btn img {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+.date-input {
+  border: none;
+  font-weight: bold;
+  font-size: 1rem;
+  color: var(--primary);
+  cursor: pointer;
+  background: transparent;
 }
 
 .match-card {
@@ -12,28 +41,23 @@
   border-radius: var(--radius);
   padding: 1.25rem;
   box-shadow: var(--shadow);
-  transition: transform 0.2s;
 }
-
 .match-card.locked {
-  background-color: #f0f0f0;
-  border: 0.0625rem solid #d1d1d1;
+  opacity: 0.7;
+  background-color: #f8f9fa;
 }
 
 .match-info {
   display: flex;
   justify-content: space-between;
-  align-items: center;
   margin-bottom: 1rem;
-  font-size: 0.875rem;
+  font-size: 0.8rem;
   color: var(--text-muted);
 }
-
 .fase-tag {
-  background: #ebecf0;
-  padding: 0.25rem 0.5rem;
+  background: #e9ecef;
+  padding: 0.2rem 0.5rem;
   border-radius: 0.25rem;
-  font-weight: bold;
 }
 
 .scoreboard {
@@ -42,15 +66,22 @@
   justify-content: space-between;
   gap: 1rem;
 }
-
 .team {
   flex: 1;
-  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
 }
-
+.flag {
+  width: 3rem;
+  height: 3rem;
+  object-fit: contain;
+}
 .team-name {
   font-weight: 600;
-  font-size: 1rem;
+  text-align: center;
+  font-size: 0.9rem;
 }
 
 .inputs {
@@ -58,67 +89,45 @@
   align-items: center;
   gap: 0.5rem;
 }
-
 .inputs input {
-  width: 3.5rem;
-  height: 3.5rem;
+  width: 3rem;
+  height: 3rem;
   text-align: center;
-  font-size: 1.5rem;
-  font-weight: bold;
-  border: 0.125rem solid #dfe1e6;
+  font-size: 1.2rem;
+  border: 1px solid #dee2e6;
   border-radius: 0.5rem;
 }
 
-.match-card.locked .inputs input {
-  background-color: #e1e1e1;
-  color: #888;
-  cursor: not-allowed;
+.flag {
+  width: 3rem;
+  height: 3rem;
+  object-fit: cover;
+  filter: drop-shadow(0px 2px 2px rgba(0, 0, 0, 0.615));
+  border-radius: 4px;
 }
 
-.penalty-box {
-  margin-top: 1.25rem;
-  padding: 1rem;
-  background: #fff9db;
-  border-radius: 0.5rem;
-  border: 0.0625rem solid #fab005;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.penalty-box label {
-  font-size: 0.875rem;
+.official-result {
+  margin-top: 1rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid #dfe1e6;
+  text-align: center;
   font-weight: bold;
+  color: var(--primary);
+  font-size: 0.9rem;
 }
 
-.btn-save {
-  width: 100%;
-  margin-top: 1.25rem;
-  padding: 0.75rem;
-  border-radius: 0.5rem;
-  border: none;
-  background: var(--primary);
-  color: white;
-  font-weight: bold;
-  cursor: pointer;
-}
-
-.btn-save:disabled {
-  background: #a5adba;
-  cursor: not-allowed;
-}
-
-/* Empty State Styling */
 .empty-state {
   text-align: center;
-  padding: 4rem 2rem;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1rem;
+  padding: 3rem;
+  color: var(--text-muted);
 }
 
-.empty-state h2 {
-  font-size: 1.5rem;
-  color: var(--text-main);
+@media (max-width: 400px) {
+  .team-name {
+    font-size: 0.8rem;
+  }
+  .flag {
+    width: 2.5rem;
+    height: 2.5rem;
+  }
 }
