@@ -172,6 +172,7 @@ serve(async (req) => {
     for (const match of data.matches) {
       // 1. Mapeamento de Dados da Partida
       const partidaData = {
+        torneio_id: "cafed0d3-9ed5-4e61-a429-9cd82ebda0c2",
         time_a: match.homeTeam.name
           ? traducaoTimes[match.homeTeam.name] || match.homeTeam.name
           : "A Definir",

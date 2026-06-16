@@ -14,7 +14,9 @@ interface UserStats {
   precisao: number;
 }
 
-export const Ranking: React.FC = () => {
+export const Ranking: React.FC<{ onSelectUser: (id: string) => void }> = ({
+  onSelectUser,
+}) => {
   const [users, setUsers] = useState<UserStats[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -24,17 +26,13 @@ export const Ranking: React.FC = () => {
 
   const fetchRankingData = async () => {
     setLoading(true);
-
-    // 1. Buscar usuários ordenados por pontuação
     const { data: profiles, error: profileError } = await supabase
       .from("usuarios")
       .select("*")
       .order("pontuacao_total", { ascending: false });
 
-    if (profileError) return;
+    if (profileError || !profiles) return;
 
-    // 2. Buscar estatísticas de palpites para calcular precisão
-    // Em um cenário de produção, isso seria uma View no Postgres ou uma Edge Function
     const { data: palpites, error: palpiteError } = await supabase
       .from("palpites")
       .select("usuario_id, pontos_ganhos");
@@ -72,10 +70,12 @@ export const Ranking: React.FC = () => {
         {users.map((user, index) => (
           <div
             key={user.id}
+            onClick={() => onSelectUser(user.id)}
+            role="button"
             className={`ranking-item ${index === 0 ? "podium-first" : ""}`}
+            style={{ cursor: "pointer" }}
           >
             <div className="rank-number">{index + 1}º</div>
-
             <div className="avatar-wrapper">
               <img
                 src={
@@ -92,7 +92,6 @@ export const Ranking: React.FC = () => {
                 </div>
               )}
             </div>
-
             <div className="user-info">
               <span className="username">{user.username}</span>
               <div className="user-analytics">
@@ -104,7 +103,6 @@ export const Ranking: React.FC = () => {
                 </span>
               </div>
             </div>
-
             <div className="user-score">
               <span className="points">{user.pontuacao_total}</span>
               <span className="points-label">pts</span>
