@@ -1,0 +1,106 @@
+.perfil-container {
+  padding: 1.5rem;
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.btn-voltar {
+  background: var(--bg-app);
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius);
+  cursor: pointer;
+  color: var(--text-main);
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+
+.hero-stats {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.streak-badge {
+  margin-top: 0.5rem;
+  background: #fff3bf;
+  padding: 0.4rem 1rem;
+  border-radius: 20px;
+  display: inline-block;
+  font-weight: bold;
+  color: #856404;
+}
+
+.last-5 {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.dot {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.stat-card {
+  background: var(--bg-app);
+  padding: 1rem;
+  border-radius: var(--radius);
+  text-align: center;
+}
+
+.stat-card.full {
+  grid-column: span 2;
+}
+
+.stat-card strong {
+  display: block;
+  font-size: 1.4rem;
+  color: var(--primary);
+}
+
+.btn-historico {
+  width: 100%;
+  padding: 0.8rem;
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: var(--radius);
+  font-weight: bold;
+  cursor: pointer;
+}
+
+/* Cores das faixas de pontuação */
+.score-7 {
+  background: #d4edda;
+  color: #155724;
+}
+.score-4 {
+  background: #fff3cd;
+  color: #856404;
+}
+.score-2 {
+  background: #cce5ff;
+  color: #004085;
+}
+.score-1 {
+  background: #e2e3e5;
+  color: #383d41;
+}
+.score-0 {
+  background: #f8d7da;
+  color: #721c24;
+}

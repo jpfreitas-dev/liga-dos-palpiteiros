@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { supabase } from "../services/supabaseClient";
-import { Trophy, Target, TrendingUp, MessageCircle } from "lucide-react";
+import { Trophy, Target, TrendingUp } from "lucide-react";
 import "./Ranking.css";
 
 interface UserStats {
   id: string;
   username: string;
-  avatar_url: string;
+  avatar_url: string | null;
   status_message: string;
   pontuacao_total: number;
   total_palpites: number;
@@ -63,7 +63,6 @@ export const Ranking: React.FC<{ onSelectUser: (id: string) => void }> = ({
     <div className="ranking-container">
       <header className="ranking-header">
         <Trophy color="#FFD700" size={32} />
-        <h1>Ranking Global</h1>
       </header>
 
       <div className="ranking-list">
@@ -71,35 +70,22 @@ export const Ranking: React.FC<{ onSelectUser: (id: string) => void }> = ({
           <div
             key={user.id}
             onClick={() => onSelectUser(user.id)}
-            role="button"
             className={`ranking-item ${index === 0 ? "podium-first" : ""}`}
-            style={{ cursor: "pointer" }}
           >
             <div className="rank-number">{index + 1}º</div>
-            <div className="avatar-wrapper">
-              <img
-                src={
-                  user.avatar_url ||
-                  `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`
-                }
-                alt={user.username}
-                className="user-avatar"
-              />
-              {user.status_message && (
-                <div className="status-bubble">
-                  <MessageCircle size={10} fill="currentColor" />
-                  <span>{user.status_message}</span>
-                </div>
-              )}
+            <div className="avatar-placeholder">
+              {user.username.charAt(0).toUpperCase()}
             </div>
             <div className="user-info">
               <span className="username">{user.username}</span>
               <div className="user-analytics">
                 <span className="stat-tag">
-                  <Target size={12} /> {user.precisao}% precisão
+                  <Target size={14} /> <span>{user.precisao}%</span>
+                  <span className="label-text"> precisão</span>
                 </span>
                 <span className="stat-tag">
-                  <TrendingUp size={12} /> {user.acertos_exatos} cravadas
+                  <TrendingUp size={14} /> <span>{user.acertos_exatos}</span>
+                  <span className="label-text"> cravadas</span>
                 </span>
               </div>
             </div>

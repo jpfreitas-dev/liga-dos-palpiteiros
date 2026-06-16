@@ -1,61 +1,104 @@
-import { useState, useEffect } from 'react';
-import { supabase } from '../services/supabaseClient';
+import { useState, useEffect } from "react";
+import { supabase } from "../services/supabaseClient";
+import "./PerfilUsuario.css";
 
-interface PalpiteHistorico {
-  id: string;
-  pontos_ganhos: number;
-  detalhe_pontuacao: string;
-  partidas: {
-    sigla_mandante: string;
-    sigla_visitante: string;
-    placar_a: number;
-    placar_b: number;
-    fase: string;
-  };
-}
-
-export function PerfilUsuario({ usuarioId, onClose }: { usuarioId: string; onClose: () => void }) {
-  const [perfil, setPerfil] = useState({ username: '', pontuacao: 0 });
-  const [historico, setHistorico] = useState<PalpiteHistorico[]>([]);
-  const [loading, setLoading] = useState(true);
+export function PerfilUsuario({
+  usuarioId,
+  onClose,
+}: {
+  usuarioId: string;
+  onClose: () => void;
+}) {
+  const [data, setData] = useState<any>(null);
 
   useEffect(() => {
-    async function carregarDadosPerfil() {
-      setLoading(true);
-      const { data: usuario } = await supabase.from('usuarios').select('username, pontuacao_total').eq('id', usuarioId).single();
-      const { data: palpites } = await supabase.from('palpites').select(`id, pontos_ganhos, detalhe_pontuacao, partidas(sigla_mandante, sigla_visitante, placar_a, placar_b, fase)`).eq('usuario_id', usuarioId).not('detalhe_pontuacao', 'is', null).order('created_at', { ascending: false });
+    async function loadFullStats() {
+      const { data: user } = await supabase
+        .from("usuarios")
+        .select("*")
+        .eq("id", usuarioId)
+        .single();
+      const { data: palpites } = await supabase
+        .from("palpites")
+        .select("pontos_ganhos, created_at")
+        .eq("usuario_id", usuarioId)
+        .order("created_at", { ascending: false });
 
-      if (usuario) setPerfil({ username: usuario.username, pontuacao: usuario.pontuacao_total });
-      if (palpites) setHistorico(palpites as unknown as PalpiteHistorico[]);
-      setLoading(false);
+      const total = palpites?.length || 0;
+      const cravadas =
+        palpites?.filter((p) => p.pontos_ganhos === 7).length || 0;
+      const vitorias =
+        palpites?.filter((p) => p.pontos_ganhos === 4).length || 0;
+      const pontuados =
+        palpites?.filter((p) => p.pontos_ganhos > 0).length || 0;
+
+      // Cálculo de Streak (sequência atual de jogos com pontos > 0)
+      let streak = 0;
+      for (const p of palpites || []) {
+        if (p.pontos_ganhos > 0) streak++;
+        else break;
+      }
+
+      setData({
+        ...user,
+        total,
+        cravadas,
+        precisao: total > 0 ? Math.round((cravadas / total) * 100) : 0,
+        taxaVencedor: total > 0 ? Math.round((vitorias / total) * 100) : 0,
+        precisaoGeral: total > 0 ? Math.round((pontuados / total) * 100) : 0,
+        mediaPontos:
+          total > 0
+            ? (
+                (palpites ?? []).reduce((a, b) => a + b.pontos_ganhos, 0) /
+                total
+              ).toFixed(1)
+            : 0,
+        streak,
+        ultimos5: palpites?.slice(0, 5).map((p) => p.pontos_ganhos),
+      });
     }
-    carregarDadosPerfil();
+    loadFullStats();
   }, [usuarioId]);
 
-  const getCorPontuacao = (pontos: number) => {
-    if (pontos === 7) return '#d4edda';
-    if (pontos === 4) return '#fff3cd';
-    if (pontos >= 1) return '#cce5ff';
-    return '#f8d7da';
-  };
-
-  if (loading) return <div>Carregando...</div>;
+  if (!data) return <div className="loading">Carregando Dashboard...</div>;
 
   return (
-    <div style={{ padding: '1rem', background: '#ffffff', borderRadius: '0.5rem' }}>
-      <button onClick={onClose} style={{ marginBottom: '1rem', cursor: 'pointer' }}>← Voltar</button>
-      <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-        <h2>{perfil.username}</h2>
-        <p style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>{perfil.pontuacao} Pontos</p>
+    <div className="perfil-container">
+      <button className="btn-voltar" onClick={onClose}>
+        ← Voltar
+      </button>
+
+      <div className="hero-stats">
+        <h2>{data.username}</h2>
+        <div className="streak-badge">
+          🔥 Sequência atual: {data.streak} jogos
+        </div>
+        <div className="last-5">
+          {data.ultimos5.map((p: number, i: number) => (
+            <span key={i} className={`dot score-${p}`}>
+              {p}
+            </span>
+          ))}
+        </div>
       </div>
-      <h3>Histórico</h3>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-        {historico.map((h) => (
-          <div key={h.id} style={{ padding: '0.75rem', borderRadius: '0.25rem', background: getCorPontuacao(h.pontos_ganhos), display: 'flex', justifyContent: 'space-between' }}>
-            <span>{h.partidas.sigla_mandante} vs {h.partidas.sigla_visitante}</span>
-            <span style={{ fontWeight: 'bold' }}>{h.pontos_ganhos} pts</span>
-          </div>
-        ))}
+
+      <div className="dashboard-grid">
+        <div className="stat-card">
+          <strong>{data.pontuacao_total}</strong>Pontos Totais
+        </div>
+        <div className="stat-card">
+          <strong>{data.mediaPontos}</strong>Média/Jogo
+        </div>
+        <div className="stat-card">
+          <strong>{data.precisao}%</strong>Cravadas <br /> (7 pontos)
+        </div>
+        <div className="stat-card">
+          <strong>{data.taxaVencedor}%</strong>Vencedores <br /> (4 pontos)
+        </div>
+        <div className="stat-card full">
+          <strong>{data.precisaoGeral}%</strong>Precisão Geral <br /> (pontos
+          &gt; 0)
+        </div>
       </div>
     </div>
   );

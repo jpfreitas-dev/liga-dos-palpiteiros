@@ -62,11 +62,7 @@ function App() {
                   marginTop: "1rem",
                 }}
               >
-                <h1>
-                  {activeTab === "jogos"
-                    ? "Painel de Palpites"
-                    : "Ranking Global"}
-                </h1>
+                <h1>{activeTab === "jogos" ? "Meus palpites" : "Ranking"}</h1>
                 <button
                   onClick={() => supabase.auth.signOut()}
                   style={{
