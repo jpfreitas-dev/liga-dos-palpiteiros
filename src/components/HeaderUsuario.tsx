@@ -13,33 +13,55 @@ export function HeaderUsuario({ usuarioId, onOpenProfile }: HeaderProps) {
     ranking: 0,
   });
 
+  async function carregarDadosHeader() {
+    if (!usuarioId) return;
+
+    // 1. Busca dados do usuário
+    const { data: usuario } = await supabase
+      .from("usuarios")
+      .select("username, pontuacao_total")
+      .eq("id", usuarioId)
+      .single();
+
+    if (!usuario) return;
+
+    // 2. Busca posição no ranking
+    const { count } = await supabase
+      .from("usuarios")
+      .select("id", { count: "exact", head: true })
+      .gt("pontuacao_total", usuario.pontuacao_total);
+
+    setDadosUsuario({
+      username: usuario.username,
+      pontuacao: usuario.pontuacao_total,
+      ranking: (count || 0) + 1,
+    });
+  }
+
   useEffect(() => {
-    async function carregarDadosHeader() {
-      const { data: usuario, error: errorUser } = await supabase
-        .from("usuarios")
-        .select("username, pontuacao_total")
-        .eq("id", usuarioId)
-        .single();
+    // Carrega inicial
+    carregarDadosHeader();
 
-      if (errorUser || !usuario) return;
+    // Configuração do Realtime: Escuta alterações na tabela de usuários
+    const channel = supabase
+      .channel("header_changes")
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "usuarios",
+          filter: `id=eq.${usuarioId}`, // Só atualiza se for o MEU usuário
+        },
+        () => {
+          carregarDadosHeader();
+        },
+      )
+      .subscribe();
 
-      const { count, error: errorRank } = await supabase
-        .from("usuarios")
-        .select("id", { count: "exact", head: true })
-        .gt("pontuacao_total", usuario.pontuacao_total);
-
-      const posicaoAtual = errorRank ? 0 : (count || 0) + 1;
-
-      setDadosUsuario({
-        username: usuario.username,
-        pontuacao: usuario.pontuacao_total,
-        ranking: posicaoAtual,
-      });
-    }
-
-    if (usuarioId) {
-      carregarDadosHeader();
-    }
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [usuarioId]);
 
   return (

@@ -1,8 +1,11 @@
+/* Container Principal */
 .perfil-container {
   padding: 1.5rem;
   background: var(--surface);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
+  max-width: 500px;
+  margin: 0 auto;
 }
 
 .btn-voltar {
@@ -16,6 +19,7 @@
   margin-bottom: 1rem;
 }
 
+/* Stats Hero */
 .hero-stats {
   text-align: center;
   margin-bottom: 1.5rem;
@@ -48,6 +52,7 @@
   font-weight: bold;
 }
 
+/* Dashboard Grid */
 .dashboard-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -70,20 +75,123 @@
   display: block;
   font-size: 1.4rem;
   color: var(--primary);
+  margin-bottom: 0.25rem;
 }
 
-.btn-historico {
+/* Área de Histórico (Clash Royale Style) */
+.historico-section {
+  margin-top: 1.5rem;
+}
+
+.btn-toggle {
   width: 100%;
   padding: 0.8rem;
-  background: var(--primary);
-  color: white;
-  border: none;
+  background: var(--bg-app);
+  border: 1px solid var(--primary);
   border-radius: var(--radius);
-  font-weight: bold;
+  color: var(--primary);
+  font-weight: 700;
   cursor: pointer;
+  transition: all 0.2s;
 }
 
-/* Cores das faixas de pontuação */
+.historico-lista {
+  margin-top: 1rem;
+  max-height: 400px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.history-card {
+  background: #ffffff;
+  padding: 0.8rem 1rem;
+  border-radius: 8px;
+  border-left: 8px solid #ccc;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.hist-info {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  color: #6b778c;
+  margin-bottom: 0.4rem;
+}
+
+.team-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  min-width: 50px; /* Garante que o container tenha largura fixa */
+}
+
+.hist-flag {
+  width: 32px;
+  height: 24px;
+  object-fit: cover;
+  border-radius: 2px;
+}
+
+.team-tag {
+  background: #f4f5f7;
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+}
+
+.hist-match-box {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.8rem;
+  font-weight: 800;
+  font-size: 1.1rem;
+  color: #172b4d;
+}
+
+.team-tag {
+  background: #f4f5f7;
+  padding: 0.2rem 0.6rem;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.score-palpite {
+  font-family: monospace;
+  font-size: 1.2rem;
+}
+
+.hist-footer {
+  font-size: 0.75rem;
+  text-align: center;
+  color: #5e6c84;
+  margin-top: 0.4rem;
+  font-style: italic;
+}
+
+/* Cores das Bordas */
+.border-green {
+  border-left-color: #22c55e;
+}
+.border-blue {
+  border-left-color: #3b82f6;
+}
+.border-yellow {
+  border-left-color: #eab308;
+}
+.border-orange {
+  border-left-color: #f97316;
+}
+.border-red {
+  border-left-color: #ef4444;
+}
+
+/* Cores dos Dots no Topo */
 .score-7 {
   background: #d4edda;
   color: #155724;
