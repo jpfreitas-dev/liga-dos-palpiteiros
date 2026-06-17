@@ -123,14 +123,39 @@ export function PerfilUsuario({
 
   return (
     <div className="perfil-container">
-      <button className="btn-voltar" onClick={onClose}>
-        Voltar
+      <button
+        className="btn-voltar"
+        onClick={onClose}
+        style={{
+          display: "flex", // Adicionado flex para alinhar ícone
+          alignItems: "center",
+          gap: "0.1rem",
+          background: "transparent",
+          border: "none",
+          color: "var(--primary)",
+          cursor: "pointer",
+          fontWeight: "bold",
+          fontSize: "1rem",
+          padding: 0,
+          marginBottom: "1.5rem", // Mantém separação
+        }}
+      >
+        <img
+          src="src/assets/arrow-back.svg"
+          alt="Voltar"
+          style={{
+            width: "1.25rem",
+            height: "1.25rem",
+            marginBottom: "0.1rem",
+          }}
+        />
+        <span>Voltar</span>
       </button>
 
       <div className="hero-stats">
         <h2>{dashboardData.username}</h2>
         <div className="streak-badge">
-          Sequência pontuando: {dashboardData.streak} jogos
+          🔥 Sequência pontuando: {dashboardData.streak} jogos
         </div>
       </div>
 

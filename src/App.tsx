@@ -5,12 +5,16 @@ import { MatchList } from "./components/MatchList";
 import { Ranking } from "./components/Ranking";
 import { HeaderUsuario } from "./components/HeaderUsuario";
 import { PerfilUsuario } from "./components/PerfilUsuario";
+import { TournamentSelection } from "./components/TournamentSelection";
 import type { Session } from "@supabase/supabase-js";
 
 function App() {
   const [session, setSession] = useState<Session | null>(null);
   const [activeTab, setActiveTab] = useState<"jogos" | "ranking">("jogos");
-  const [perfilSelecionado, setPerfilSelecionado] = useState<string | null>(
+  const [selectedProfileId, setSelectedProfileId] = useState<string | null>(
+    null,
+  );
+  const [activeTournamentId, setActiveTournamentId] = useState<string | null>(
     null,
   );
 
@@ -44,45 +48,66 @@ function App() {
         >
           <HeaderUsuario
             usuarioId={session.user.id}
-            onOpenProfile={(id) => setPerfilSelecionado(id)}
+            onOpenProfile={(id) => setSelectedProfileId(id)}
           />
 
-          {perfilSelecionado ? (
+          {selectedProfileId ? (
             <PerfilUsuario
-              usuarioId={perfilSelecionado}
-              onClose={() => setPerfilSelecionado(null)}
+              usuarioId={selectedProfileId}
+              onClose={() => setSelectedProfileId(null)}
+            />
+          ) : !activeTournamentId ? (
+            <TournamentSelection
+              onSelect={(id) => setActiveTournamentId(id)}
+              onLogout={() => supabase.auth.signOut()}
             />
           ) : (
             <>
               <header
                 style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
                   marginBottom: "2rem",
                 }}
               >
-                <h1>{activeTab === "jogos" ? "Meus palpites" : "Ranking"}</h1>
                 <button
-                  onClick={() => supabase.auth.signOut()}
+                  className="btn-voltar"
+                  onClick={() => setActiveTournamentId(null)}
                   style={{
-                    padding: "0.5rem 1rem",
-                    cursor: "pointer",
-                    backgroundColor: "var(--error)",
-                    color: "white",
+                    background: "transparent",
                     border: "none",
-                    borderRadius: "var(--radius)",
+                    color: "var(--primary)",
+                    cursor: "pointer",
                     fontWeight: "bold",
+                    fontSize: "1rem",
+                    display: "flex", // Adicionado flex para alinhar ícone
+                    alignItems: "center",
+                    gap: "0.1rem",
+                    padding: 0,
+                    marginBottom: "1rem", // Move o título para baixo
                   }}
                 >
-                  Sair
+                  <img
+                    src="src/assets/arrow-back.svg"
+                    alt="Voltar"
+                    style={{
+                      width: "1.25rem",
+                      height: "1.25rem",
+                      marginBottom: "0.1rem",
+                    }}
+                  />
+                  <span>Voltar</span>
                 </button>
+                <h2 style={{ fontSize: "1.25rem", margin: 0 }}>
+                  {activeTab === "jogos" ? "Meus palpites" : "Ranking"}
+                </h2>
               </header>
 
               {activeTab === "jogos" ? (
-                <MatchList userId={session.user.id} />
+                <MatchList
+                  userId={session.user.id}
+                  tournamentId={activeTournamentId}
+                />
               ) : (
-                <Ranking onSelectUser={(id) => setPerfilSelecionado(id)} />
+                <Ranking onSelectUser={(id) => setSelectedProfileId(id)} />
               )}
 
               <nav

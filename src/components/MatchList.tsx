@@ -3,7 +3,13 @@ import { supabase } from "../services/supabaseClient";
 import type { Match, Prediction } from "../types/database";
 import "./MatchList.css";
 
-export function MatchList({ userId }: { userId: string }) {
+export function MatchList({
+  userId,
+  tournamentId,
+}: {
+  userId: string;
+  tournamentId: string;
+}) {
   const getLocalDate = () => {
     const date = new Date();
     const offset = date.getTimezoneOffset() * 60000;
@@ -27,6 +33,7 @@ export function MatchList({ userId }: { userId: string }) {
       const { data, error } = await supabase
         .from("partidas")
         .select(`*, palpites (id, palpite_a, palpite_b)`)
+        .eq("torneio_id", tournamentId)
         .eq("palpites.usuario_id", userId)
         .gte("data_inicio", startOfDay)
         .lte("data_inicio", endOfDay)
@@ -40,7 +47,7 @@ export function MatchList({ userId }: { userId: string }) {
       setIsLoading(false);
     }
     fetchMatches();
-  }, [focusedDate, userId]);
+  }, [focusedDate, userId, tournamentId]);
 
   const changeDate = (days: number) => {
     const newDate = new Date(focusedDate + "T12:00:00");
