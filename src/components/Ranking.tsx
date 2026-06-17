@@ -21,40 +21,85 @@ export const Ranking: React.FC<{ onSelectUser: (id: string) => void }> = ({
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchRankingData();
+    const fetchRankingData = async (isInitialLoad = true) => {
+      if (isInitialLoad) setLoading(true);
+
+      const { data: profiles, error: profileError } = await supabase
+        .from("usuarios")
+        .select("*")
+        .order("pontuacao_total", { ascending: false });
+
+      if (profileError || !profiles) return;
+
+      // Busca os palpites e faz um join com a tabela de partidas para ver o status
+      const { data: palpites, error: palpiteError } = await supabase.from(
+        "palpites",
+      ).select(`
+          usuario_id, 
+          pontos_ganhos,
+          partidas!inner(status)
+        `);
+
+      if (palpiteError) return;
+
+      const statsMap = profiles.map((user) => {
+        // Filtra apenas os palpites de jogos que já acabaram
+        const palpitesFinalizados = palpites.filter(
+          (p: any) =>
+            p.usuario_id === user.id && p.partidas?.status === "FINISHED",
+        );
+
+        const totalFinalizados = palpitesFinalizados.length;
+
+        // Cravadas = cravou o placar (7 pontos)
+        const exatos = palpitesFinalizados.filter(
+          (p) => p.pontos_ganhos === 7,
+        ).length;
+
+        // Precisão = pontuou de alguma forma no jogo (> 0)
+        const pontuados = palpitesFinalizados.filter(
+          (p) => p.pontos_ganhos > 0,
+        ).length;
+
+        return {
+          ...user,
+          total_palpites: totalFinalizados,
+          acertos_exatos: exatos,
+          precisao:
+            totalFinalizados > 0
+              ? Math.round((pontuados / totalFinalizados) * 100)
+              : 0,
+        };
+      });
+
+      setUsers(statsMap);
+      if (isInitialLoad) setLoading(false);
+    };
+
+    fetchRankingData(true);
+
+    const channel = supabase
+      .channel("ranking_updates")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "palpites" },
+        () => {
+          fetchRankingData(false);
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "usuarios" },
+        () => {
+          fetchRankingData(false);
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
-
-  const fetchRankingData = async () => {
-    setLoading(true);
-    const { data: profiles, error: profileError } = await supabase
-      .from("usuarios")
-      .select("*")
-      .order("pontuacao_total", { ascending: false });
-
-    if (profileError || !profiles) return;
-
-    const { data: palpites, error: palpiteError } = await supabase
-      .from("palpites")
-      .select("usuario_id, pontos_ganhos");
-
-    if (palpiteError) return;
-
-    const statsMap = profiles.map((user) => {
-      const userPalpites = palpites.filter((p) => p.usuario_id === user.id);
-      const total = userPalpites.length;
-      const exatos = userPalpites.filter((p) => p.pontos_ganhos === 7).length;
-
-      return {
-        ...user,
-        total_palpites: total,
-        acertos_exatos: exatos,
-        precisao: total > 0 ? Math.round((exatos / total) * 100) : 0,
-      };
-    });
-
-    setUsers(statsMap);
-    setLoading(false);
-  };
 
   if (loading)
     return <div className="loading-state">Calculando posições...</div>;

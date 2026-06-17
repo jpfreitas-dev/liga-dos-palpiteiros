@@ -17,15 +17,19 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
     );
 
-    // BUSCA TODO O TORNEIO (Removido o filtro ?date=${today})
     const response = await fetch(
       "https://api.football-data.org/v4/competitions/WC/matches",
       { headers: { "X-Auth-Token": Deno.env.get("API_FOOTBALL_KEY") ?? "" } },
     );
 
+    const url = new URL(req.url);
+    const forceRecalculate =
+      url.searchParams.get("forceRecalculate") === "true";
+
     if (response.status === 429) throw new Error("Limite da API excedido");
     const data = await response.json();
 
+    // Dicionários de Tradução
     const traducaoFase: Record<string, string> = {
       GROUP_STAGE: "Fase de Grupos",
       LAST_32: "16 Avos de Final",
@@ -79,14 +83,14 @@ serve(async (req) => {
       Switzerland: "Suíça",
       "Bosnia and Herzegovina": "Bósnia e Herzegovina",
       Scotland: "Escócia",
-      "Czech Republic": "República Tcheca",
+      Czechia: "Tchéquia",
       Sweden: "Suécia",
       Turkey: "Turquia",
 
       // CAF
       "South Africa": "África do Sul",
       Algeria: "Argélia",
-      "Cape Verde": "Cabo Verde",
+      "Cape Verde Islands": "Cabo Verde", // API envia o termo em português "Cabo Verde", não "Cape Verde"
       "Ivory Coast": "Costa do Marfim",
       Egypt: "Egito",
       Ghana: "Gana",
@@ -97,6 +101,7 @@ serve(async (req) => {
       // AFC
       "Saudi Arabia": "Arábia Saudita",
       Australia: "Austrália",
+      Jordan: "Jordânia", // Inclusão da seleção da Jordânia que faltava
       Qatar: "Catar",
       "South Korea": "Coreia do Sul",
       "United Arab Emirates": "Emirados Árabes Unidos",
@@ -105,14 +110,14 @@ serve(async (req) => {
       Uzbekistan: "Uzbequistão",
 
       // CONCACAF
-      Curacao: "Curaçao",
+      Curaçao: "Curaçao", // API envia com o caractere especial "ç" (Curaçao)
       Haiti: "Haiti",
       Panama: "Panamá",
 
       // OFC
       "New Zealand": "Nova Zelândia",
 
-      // Repescagem
+      // Repescagem / Outros da CAF
       Iraq: "Iraque",
       "DR Congo": "RD Congo",
     };
@@ -147,7 +152,7 @@ serve(async (req) => {
       TUR: "TUR",
 
       RSA: "AFS",
-      ALG: "ARG",
+      ALG: "ALG",
       CPV: "CBV",
       CIV: "CDM",
       EGY: "EGI",
@@ -158,6 +163,7 @@ serve(async (req) => {
 
       KSA: "ARA",
       AUS: "AUS",
+      JOR: "JOR",
       QAT: "CAT",
       KOR: "COR",
       UAE: "EAU",
@@ -169,6 +175,7 @@ serve(async (req) => {
       HAI: "HAI",
       PAN: "PAN",
 
+      BRU: "BRU",
       NZL: "NZL",
 
       IRQ: "IRQ",
@@ -176,51 +183,53 @@ serve(async (req) => {
     };
 
     for (const match of data.matches) {
-      // Lógica de "A Definir"
       const isAdefinir = !match.homeTeam.name || !match.awayTeam.name;
 
+      // 1. Atualiza/Insere Partida com as traduções
       const partidaData = {
         torneio_id: "cafed0d3-9ed5-4e61-a429-9cd82ebda0c2",
         time_a: isAdefinir
           ? "A Definir"
-          : traducaoTimes[match.homeTeam.name!] || match.homeTeam.name,
+          : traducaoTimes[match.homeTeam.name] || match.homeTeam.name,
         time_b: isAdefinir
           ? "A Definir"
-          : traducaoTimes[match.awayTeam.name!] || match.awayTeam.name,
+          : traducaoTimes[match.awayTeam.name] || match.awayTeam.name,
         data_inicio: match.utcDate,
+        status: match.status,
         fase: traducaoFase[match.stage] || match.stage,
-        estagio: traducaoFase[match.stage] || match.stage,
         grupo: match.group ? traducaoGrupo[match.group] || match.group : null,
         emblema_mandante: isAdefinir ? null : match.homeTeam.crest,
         emblema_visitante: isAdefinir ? null : match.awayTeam.crest,
         sigla_mandante: isAdefinir
           ? null
-          : traducaoSiglas[match.homeTeam.tla!] || match.homeTeam.tla,
+          : traducaoSiglas[match.homeTeam.tla] || match.homeTeam.tla,
         sigla_visitante: isAdefinir
           ? null
-          : traducaoSiglas[match.awayTeam.tla!] || match.awayTeam.tla,
-        status: match.status,
+          : traducaoSiglas[match.awayTeam.tla] || match.awayTeam.tla,
         placar_a: match.score.fullTime.home ?? null,
         placar_b: match.score.fullTime.away ?? null,
       };
 
-      await supabase
+      const { data: partida } = await supabase
         .from("partidas")
         .upsert(
           { external_id: match.id, ...partidaData },
           { onConflict: "external_id" },
-        );
+        )
+        .select("id")
+        .single();
 
-      if (match.status === "FINISHED") {
+      // 2. Processa Pontuação
+      if ((match.status === "FINISHED" || forceRecalculate) && partida) {
         const realA = match.score.fullTime.home ?? 0;
         const realB = match.score.fullTime.away ?? 0;
         const realWinner = realA > realB ? "A" : realB > realA ? "B" : "DRAW";
 
         const { data: palpites } = await supabase
           .from("palpites")
-          .select("*, partidas!inner(external_id)")
-          .eq("partidas.external_id", match.id)
-          .eq("pontos_ganhos", 0);
+          .select("*")
+          .eq("partida_id", partida.id)
+          .or("pontos_ganhos.eq.0,pontos_ganhos.is.null");
 
         for (const palpite of palpites || []) {
           let pontos = 0;
@@ -244,7 +253,10 @@ serve(async (req) => {
           ) {
             pontos = 2;
             detalhe = "Acertou o placar invertido";
-          } else if (palpite.palpite_a - palpite.palpite_b === realA - realB) {
+          } else if (
+            Math.abs(palpite.palpite_a - palpite.palpite_b) ===
+            Math.abs(realA - realB)
+          ) {
             pontos = 1;
             detalhe = "Acertou o saldo de gols";
           }
