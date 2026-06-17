@@ -1,19 +1,18 @@
 /* src/index.css */
 
-/* Restrição obrigatória: root em 16px */
 :root {
   font-size: 16px;
 
-  /* Design Tokens */
-  --primary: #0052cc;
-  --primary-hover: #0065ff;
-  --bg-app: #f4f5f7;
-  --surface: #ffffff;
-  --text-main: #172b4d;
-  --text-muted: #5e6c84;
-  --error: #de350b;
-  --radius: 0.5rem; /* 8px */
-  --shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.1);
+  /* Design Tokens - Modo Escuro */
+  --primary: #4c9aff;
+  --primary-hover: #2684ff;
+  --bg-app: #121212;
+  --surface: #1e1e1e;
+  --text-main: #e0e0e0;
+  --text-muted: #a0a0a0;
+  --error: #ff5630;
+  --radius: 0.5rem;
+  --shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.5);
 }
 
 * {
@@ -32,7 +31,6 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Utilitário para acessibilidade: Esconder visualmente mas manter para Screen Readers */
 .sr-only {
   position: absolute;
   width: 1px;

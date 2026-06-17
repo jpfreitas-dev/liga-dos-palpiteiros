@@ -96,7 +96,7 @@ export function PerfilUsuario({
       <div className="hero-stats">
         <h2>{data.username}</h2>
         <div className="streak-badge">
-          Sequência pontuando: {data.streak} jogos
+          🔥 Sequência pontuando: {data.streak} jogos
         </div>
       </div>
 

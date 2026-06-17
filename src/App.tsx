@@ -38,6 +38,7 @@ function App() {
             padding: "1rem",
             maxWidth: "40rem",
             margin: "0 auto",
+            paddingTop: "5rem",
             paddingBottom: "5rem",
           }}
         >
@@ -59,7 +60,6 @@ function App() {
                   justifyContent: "space-between",
                   alignItems: "center",
                   marginBottom: "2rem",
-                  marginTop: "1rem",
                 }}
               >
                 <h1>{activeTab === "jogos" ? "Meus palpites" : "Ranking"}</h1>
@@ -68,10 +68,10 @@ function App() {
                   style={{
                     padding: "0.5rem 1rem",
                     cursor: "pointer",
-                    backgroundColor: "#de350b",
+                    backgroundColor: "var(--error)",
                     color: "white",
                     border: "none",
-                    borderRadius: "0.25rem",
+                    borderRadius: "var(--radius)",
                     fontWeight: "bold",
                   }}
                 >
@@ -91,12 +91,12 @@ function App() {
                   bottom: 0,
                   left: 0,
                   right: 0,
-                  backgroundColor: "#ffffff",
+                  backgroundColor: "var(--surface)",
                   display: "flex",
                   justifyContent: "space-around",
                   padding: "1rem",
-                  borderTop: "0.0625rem solid #dfe1e6",
-                  boxShadow: "0 -0.125rem 0.625rem rgba(0,0,0,0.05)",
+                  borderTop: "0.0625rem solid #333333",
+                  boxShadow: "0 -0.125rem 0.625rem rgba(0,0,0,0.3)",
                   zIndex: 10,
                 }}
               >
@@ -107,9 +107,13 @@ function App() {
                     border: "none",
                     fontSize: "1rem",
                     fontWeight: activeTab === "jogos" ? "bold" : "normal",
-                    color: activeTab === "jogos" ? "#0052cc" : "#5e6c84",
+                    color:
+                      activeTab === "jogos"
+                        ? "var(--primary)"
+                        : "var(--text-muted)",
                     cursor: "pointer",
                     padding: "0.5rem",
+                    transition: "color 0.2s ease",
                   }}
                 >
                   Jogos
@@ -121,9 +125,13 @@ function App() {
                     border: "none",
                     fontSize: "1rem",
                     fontWeight: activeTab === "ranking" ? "bold" : "normal",
-                    color: activeTab === "ranking" ? "#0052cc" : "#5e6c84",
+                    color:
+                      activeTab === "ranking"
+                        ? "var(--primary)"
+                        : "var(--text-muted)",
                     cursor: "pointer",
                     padding: "0.5rem",
+                    transition: "color 0.2s ease",
                   }}
                 >
                   Ranking

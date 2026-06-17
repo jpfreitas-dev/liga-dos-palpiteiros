@@ -66,7 +66,12 @@ export function HeaderUsuario({ usuarioId, onOpenProfile }: HeaderProps) {
 
   return (
     <header
-      style={{ display: "flex", justifyContent: "flex-end", padding: "1rem 0" }}
+      style={{
+        position: "fixed",
+        top: "1rem",
+        right: "1rem",
+        zIndex: 50,
+      }}
     >
       <button
         onClick={() => onOpenProfile(usuarioId)}
@@ -75,25 +80,25 @@ export function HeaderUsuario({ usuarioId, onOpenProfile }: HeaderProps) {
           display: "flex",
           alignItems: "center",
           gap: "0.75rem",
-          background: "#ffffff",
-          border: "0.0625rem solid #dfe1e6", // Equivalente a 1px
+          background: "var(--surface)",
+          border: "0.0625rem solid #333333",
           borderRadius: "3rem",
           padding: "0.375rem 1rem 0.375rem 0.375rem",
           cursor: "pointer",
-          boxShadow: "0 0.125rem 0.25rem rgba(0,0,0,0.05)", // Sombra leve
+          boxShadow: "var(--shadow)",
           transition: "all 0.2s ease",
         }}
       >
         <div
           style={{
-            width: "2.5rem", // Equivalente a 40px
+            width: "2.5rem",
             height: "2.5rem",
             borderRadius: "50%",
-            backgroundColor: "#ebecf0",
+            backgroundColor: "#333333",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            color: "#5e6c84",
+            color: "var(--text-main)",
             fontWeight: "bold",
             fontSize: "1rem",
           }}
@@ -111,11 +116,15 @@ export function HeaderUsuario({ usuarioId, onOpenProfile }: HeaderProps) {
           }}
         >
           <span
-            style={{ fontWeight: "bold", fontSize: "1rem", color: "#172b4d" }}
+            style={{
+              fontWeight: "bold",
+              fontSize: "1rem",
+              color: "var(--text-main)",
+            }}
           >
             {dadosUsuario.username}
           </span>
-          <span style={{ fontSize: "0.875rem", color: "#5e6c84" }}>
+          <span style={{ fontSize: "0.875rem", color: "var(--text-muted)" }}>
             {dadosUsuario.pontuacao} pts • {dadosUsuario.ranking}º Lugar
           </span>
         </div>
