@@ -1,14 +1,30 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../services/supabaseClient";
+import type { UserProfile, Prediction, Match } from "../types/database";
 import "./PerfilUsuario.css";
 
-const getPontuacaoStyle = (pontos: number) => {
-  if (pontos === 7) return "border-green";
-  if (pontos === 4) return "border-blue";
-  if (pontos === 2) return "border-yellow";
-  if (pontos === 1) return "border-orange";
+const getScoreStyle = (points: number) => {
+  if (points === 7) return "border-green";
+  if (points === 4) return "border-blue";
+  if (points === 2) return "border-yellow";
+  if (points === 1) return "border-orange";
   return "border-red";
 };
+
+interface HistoryItem extends Prediction {
+  partidas: Match;
+}
+
+interface DashboardData extends UserProfile {
+  totalGames: number;
+  exactMatches: number;
+  exactAccuracy: number;
+  winnerAccuracy: number;
+  generalAccuracy: number;
+  averagePoints: string;
+  streak: number;
+  history: HistoryItem[];
+}
 
 export function PerfilUsuario({
   usuarioId,
@@ -17,117 +33,138 @@ export function PerfilUsuario({
   usuarioId: string;
   onClose: () => void;
 }) {
-  const [data, setData] = useState<any>(null);
-  const [expanded, setExpanded] = useState(false);
+  const [dashboardData, setDashboardData] = useState<DashboardData | null>(
+    null,
+  );
+  const [isExpanded, setIsExpanded] = useState(false);
 
   useEffect(() => {
-    async function loadFullStats() {
+    async function fetchFullStats() {
       const { data: user } = await supabase
         .from("usuarios")
         .select("*")
         .eq("id", usuarioId)
         .single();
 
-      const { data: palpites } = await supabase
+      if (!user) return;
+
+      const { data: predictions } = await supabase
         .from("palpites")
         .select(
           `
+          id,
+          usuario_id,
+          partida_id,
           pontos_ganhos, 
           detalhe_pontuacao, 
           palpite_a, 
           palpite_b, 
-          created_at,
-          partidas(time_a, time_b, placar_a, placar_b, data_inicio, sigla_mandante, sigla_visitante, emblema_mandante, emblema_visitante, status)
+          partidas(id, time_a, time_b, placar_a, placar_b, data_inicio, sigla_mandante, sigla_visitante, emblema_mandante, emblema_visitante, status)
         `,
         )
-        .eq("usuario_id", usuarioId)
-        .order("created_at", { ascending: false });
+        .eq("usuario_id", usuarioId);
 
-      const palpitesFinalizados = (palpites || []).filter(
+      const finishedPredictions = (predictions || []).filter(
         (p: any) => p.partidas?.status === "FINISHED",
-      );
+      ) as unknown as HistoryItem[];
 
-      const total = palpitesFinalizados.length;
-      const cravadas = palpitesFinalizados.filter(
+      finishedPredictions.sort((a, b) => {
+        return (
+          new Date(b.partidas.data_inicio).getTime() -
+          new Date(a.partidas.data_inicio).getTime()
+        );
+      });
+
+      const totalGames = finishedPredictions.length;
+      const exactMatches = finishedPredictions.filter(
         (p) => p.pontos_ganhos === 7,
       ).length;
-      const vitorias = palpitesFinalizados.filter(
+      const winnerMatches = finishedPredictions.filter(
         (p) => p.pontos_ganhos === 4,
       ).length;
-      const pontuados = palpitesFinalizados.filter(
-        (p) => p.pontos_ganhos > 0,
+      const scoredMatches = finishedPredictions.filter(
+        (p) => (p.pontos_ganhos ?? 0) > 0,
       ).length;
 
-      let streak = 0;
-      for (const p of palpitesFinalizados) {
-        if (p.pontos_ganhos > 0) streak++;
+      let currentStreak = 0;
+      for (const p of finishedPredictions) {
+        if ((p.pontos_ganhos ?? 0) > 0) currentStreak++;
         else break;
       }
 
-      setData({
-        ...user,
-        total,
-        cravadas,
-        historico: palpitesFinalizados,
-        precisao: total > 0 ? Math.round((cravadas / total) * 100) : 0,
-        taxaVencedor: total > 0 ? Math.round((vitorias / total) * 100) : 0,
-        precisaoGeral: total > 0 ? Math.round((pontuados / total) * 100) : 0,
-        mediaPontos:
-          total > 0
+      setDashboardData({
+        ...(user as UserProfile),
+        totalGames,
+        exactMatches,
+        history: finishedPredictions,
+        exactAccuracy:
+          totalGames > 0 ? Math.round((exactMatches / totalGames) * 100) : 0,
+        winnerAccuracy:
+          totalGames > 0 ? Math.round((winnerMatches / totalGames) * 100) : 0,
+        generalAccuracy:
+          totalGames > 0 ? Math.round((scoredMatches / totalGames) * 100) : 0,
+        averagePoints:
+          totalGames > 0
             ? (
-                palpitesFinalizados.reduce((a, b) => a + b.pontos_ganhos, 0) /
-                total
+                finishedPredictions.reduce(
+                  (acc, curr) => acc + (curr.pontos_ganhos ?? 0),
+                  0,
+                ) / totalGames
               ).toFixed(1)
-            : 0,
-        streak,
+            : "0.0",
+        streak: currentStreak,
       });
     }
-    loadFullStats();
+    fetchFullStats();
   }, [usuarioId]);
 
-  if (!data) return <div className="loading">Carregando Dashboard...</div>;
+  if (!dashboardData)
+    return <div className="loading">Carregando Dashboard...</div>;
 
   return (
     <div className="perfil-container">
       <button className="btn-voltar" onClick={onClose}>
-        ← Voltar
+        Voltar
       </button>
 
       <div className="hero-stats">
-        <h2>{data.username}</h2>
+        <h2>{dashboardData.username}</h2>
         <div className="streak-badge">
-          🔥 Sequência pontuando: {data.streak} jogos
+          Sequência pontuando: {dashboardData.streak} jogos
         </div>
       </div>
 
       <div className="dashboard-grid">
         <div className="stat-card">
-          <strong>{data.pontuacao_total}</strong>Pontos Totais
+          <strong>{dashboardData.pontuacao_total}</strong>Pontos Totais
         </div>
         <div className="stat-card">
-          <strong>{data.mediaPontos}</strong>Média/Jogo
+          <strong>{dashboardData.averagePoints}</strong>Média/Jogo
         </div>
         <div className="stat-card">
-          <strong>{data.precisao}%</strong>Cravadas
+          <strong>{dashboardData.exactAccuracy}%</strong>Cravadas
         </div>
         <div className="stat-card">
-          <strong>{data.taxaVencedor}%</strong>Vencedores
+          <strong>{dashboardData.winnerAccuracy}%</strong>Vencedores
         </div>
         <div className="stat-card full">
-          <strong>{data.precisaoGeral}%</strong>Precisão Geral
+          <strong>{dashboardData.generalAccuracy}%</strong>Precisão Geral
         </div>
       </div>
 
       <div
-        className={`historico-section ${expanded ? "expanded" : "collapsed"}`}
+        className={`historico-section ${isExpanded ? "expanded" : "collapsed"}`}
       >
-        <button className="btn-toggle" onClick={() => setExpanded(!expanded)}>
-          {expanded ? "Ocultar Histórico" : "Ver Histórico Completo"}
+        <button
+          className="btn-toggle"
+          onClick={() => setIsExpanded(!isExpanded)}
+        >
+          {isExpanded ? "Ocultar Histórico" : "Ver Histórico Completo"}
         </button>
 
-        {expanded && (
+        {isExpanded && (
           <div className="historico-lista">
-            {data.historico.map((h: any, i: number) => {
+            {dashboardData.history.map((h, i) => {
               const siglaA =
                 h.partidas.sigla_mandante ||
                 h.partidas.time_a.substring(0, 3).toUpperCase();
@@ -136,14 +173,14 @@ export function PerfilUsuario({
                 h.partidas.time_b.substring(0, 3).toUpperCase();
 
               const textoPontuacao =
-                h.pontos_ganhos > 0
+                (h.pontos_ganhos ?? 0) > 0
                   ? `${h.detalhe_pontuacao}`
                   : h.detalhe_pontuacao;
 
               return (
                 <div
                   key={i}
-                  className={`history-card ${getPontuacaoStyle(h.pontos_ganhos)}`}
+                  className={`history-card ${getScoreStyle(h.pontos_ganhos ?? 0)}`}
                 >
                   <div className="hist-info">
                     <span className="hist-data">
@@ -153,11 +190,13 @@ export function PerfilUsuario({
                   </div>
                   <div className="hist-match-box">
                     <div className="team-container">
-                      <img
-                        src={h.partidas.emblema_mandante}
-                        alt={siglaA}
-                        className="hist-flag"
-                      />
+                      {h.partidas.emblema_mandante && (
+                        <img
+                          src={h.partidas.emblema_mandante}
+                          alt={siglaA}
+                          className="hist-flag"
+                        />
+                      )}
                       <span className="team-tag">{siglaA}</span>
                     </div>
 
@@ -166,11 +205,13 @@ export function PerfilUsuario({
                     </span>
 
                     <div className="team-container">
-                      <img
-                        src={h.partidas.emblema_visitante}
-                        alt={siglaB}
-                        className="hist-flag"
-                      />
+                      {h.partidas.emblema_visitante && (
+                        <img
+                          src={h.partidas.emblema_visitante}
+                          alt={siglaB}
+                          className="hist-flag"
+                        />
+                      )}
                       <span className="team-tag">{siglaB}</span>
                     </div>
                   </div>

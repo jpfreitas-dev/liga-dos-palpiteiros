@@ -7,42 +7,38 @@ interface HeaderProps {
 }
 
 export function HeaderUsuario({ usuarioId, onOpenProfile }: HeaderProps) {
-  const [dadosUsuario, setDadosUsuario] = useState({
+  const [userData, setUserData] = useState({
     username: "Carregando...",
-    pontuacao: 0,
-    ranking: 0,
+    score: 0,
+    rank: 0,
   });
 
-  async function carregarDadosHeader() {
+  async function fetchHeaderData() {
     if (!usuarioId) return;
 
-    // 1. Busca dados do usuário
-    const { data: usuario } = await supabase
+    const { data: user } = await supabase
       .from("usuarios")
       .select("username, pontuacao_total")
       .eq("id", usuarioId)
       .single();
 
-    if (!usuario) return;
+    if (!user) return;
 
-    // 2. Busca posição no ranking
     const { count } = await supabase
       .from("usuarios")
       .select("id", { count: "exact", head: true })
-      .gt("pontuacao_total", usuario.pontuacao_total);
+      .gt("pontuacao_total", user.pontuacao_total);
 
-    setDadosUsuario({
-      username: usuario.username,
-      pontuacao: usuario.pontuacao_total,
-      ranking: (count || 0) + 1,
+    setUserData({
+      username: user.username,
+      score: user.pontuacao_total,
+      rank: (count || 0) + 1,
     });
   }
 
   useEffect(() => {
-    // Carrega inicial
-    carregarDadosHeader();
+    fetchHeaderData();
 
-    // Configuração do Realtime: Escuta alterações na tabela de usuários
     const channel = supabase
       .channel("header_changes")
       .on(
@@ -51,10 +47,10 @@ export function HeaderUsuario({ usuarioId, onOpenProfile }: HeaderProps) {
           event: "UPDATE",
           schema: "public",
           table: "usuarios",
-          filter: `id=eq.${usuarioId}`, // Só atualiza se for o MEU usuário
+          filter: `id=eq.${usuarioId}`,
         },
         () => {
-          carregarDadosHeader();
+          fetchHeaderData();
         },
       )
       .subscribe();
@@ -66,12 +62,7 @@ export function HeaderUsuario({ usuarioId, onOpenProfile }: HeaderProps) {
 
   return (
     <header
-      style={{
-        position: "fixed",
-        top: "1rem",
-        right: "1rem",
-        zIndex: 50,
-      }}
+      style={{ position: "fixed", top: "1rem", right: "1rem", zIndex: 50 }}
     >
       <button
         onClick={() => onOpenProfile(usuarioId)}
@@ -103,8 +94,8 @@ export function HeaderUsuario({ usuarioId, onOpenProfile }: HeaderProps) {
             fontSize: "1rem",
           }}
         >
-          {dadosUsuario.username !== "Carregando..."
-            ? dadosUsuario.username.charAt(0).toUpperCase()
+          {userData.username !== "Carregando..."
+            ? userData.username.charAt(0).toUpperCase()
             : ""}
         </div>
 
@@ -122,10 +113,10 @@ export function HeaderUsuario({ usuarioId, onOpenProfile }: HeaderProps) {
               color: "var(--text-main)",
             }}
           >
-            {dadosUsuario.username}
+            {userData.username}
           </span>
           <span style={{ fontSize: "0.875rem", color: "var(--text-muted)" }}>
-            {dadosUsuario.pontuacao} pts • {dadosUsuario.ranking}º Lugar
+            {userData.score} pts • {userData.rank}º Lugar
           </span>
         </div>
       </button>

@@ -1,28 +1,24 @@
 import React, { useEffect, useState } from "react";
 import { supabase } from "../services/supabaseClient";
 import { Trophy, Target, TrendingUp } from "lucide-react";
+import type { UserProfile } from "../types/database";
 import "./Ranking.css";
 
-interface UserStats {
-  id: string;
-  username: string;
-  avatar_url: string | null;
-  status_message: string;
-  pontuacao_total: number;
-  total_palpites: number;
-  acertos_exatos: number;
-  precisao: number;
+interface UserStats extends UserProfile {
+  totalPredictions: number;
+  exactMatches: number;
+  accuracy: number;
 }
 
 export const Ranking: React.FC<{ onSelectUser: (id: string) => void }> = ({
   onSelectUser,
 }) => {
-  const [users, setUsers] = useState<UserStats[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [usersData, setUsersData] = useState<UserStats[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const fetchRankingData = async (isInitialLoad = true) => {
-      if (isInitialLoad) setLoading(true);
+      if (isInitialLoad) setIsLoading(true);
 
       const { data: profiles, error: profileError } = await supabase
         .from("usuarios")
@@ -31,8 +27,7 @@ export const Ranking: React.FC<{ onSelectUser: (id: string) => void }> = ({
 
       if (profileError || !profiles) return;
 
-      // Busca os palpites e faz um join com a tabela de partidas para ver o status
-      const { data: palpites, error: palpiteError } = await supabase.from(
+      const { data: predictions, error: predictionError } = await supabase.from(
         "palpites",
       ).select(`
           usuario_id, 
@@ -40,40 +35,33 @@ export const Ranking: React.FC<{ onSelectUser: (id: string) => void }> = ({
           partidas!inner(status)
         `);
 
-      if (palpiteError) return;
+      if (predictionError) return;
 
       const statsMap = profiles.map((user) => {
-        // Filtra apenas os palpites de jogos que já acabaram
-        const palpitesFinalizados = palpites.filter(
+        const finishedPredictions = predictions.filter(
           (p: any) =>
             p.usuario_id === user.id && p.partidas?.status === "FINISHED",
         );
 
-        const totalFinalizados = palpitesFinalizados.length;
-
-        // Cravadas = cravou o placar (7 pontos)
-        const exatos = palpitesFinalizados.filter(
+        const totalFinished = finishedPredictions.length;
+        const exacts = finishedPredictions.filter(
           (p) => p.pontos_ganhos === 7,
         ).length;
-
-        // Precisão = pontuou de alguma forma no jogo (> 0)
-        const pontuados = palpitesFinalizados.filter(
+        const scored = finishedPredictions.filter(
           (p) => p.pontos_ganhos > 0,
         ).length;
 
         return {
-          ...user,
-          total_palpites: totalFinalizados,
-          acertos_exatos: exatos,
-          precisao:
-            totalFinalizados > 0
-              ? Math.round((pontuados / totalFinalizados) * 100)
-              : 0,
+          ...(user as UserProfile),
+          totalPredictions: totalFinished,
+          exactMatches: exacts,
+          accuracy:
+            totalFinished > 0 ? Math.round((scored / totalFinished) * 100) : 0,
         };
       });
 
-      setUsers(statsMap);
-      if (isInitialLoad) setLoading(false);
+      setUsersData(statsMap);
+      if (isInitialLoad) setIsLoading(false);
     };
 
     fetchRankingData(true);
@@ -83,16 +71,12 @@ export const Ranking: React.FC<{ onSelectUser: (id: string) => void }> = ({
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "palpites" },
-        () => {
-          fetchRankingData(false);
-        },
+        () => fetchRankingData(false),
       )
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "usuarios" },
-        () => {
-          fetchRankingData(false);
-        },
+        () => fetchRankingData(false),
       )
       .subscribe();
 
@@ -101,7 +85,7 @@ export const Ranking: React.FC<{ onSelectUser: (id: string) => void }> = ({
     };
   }, []);
 
-  if (loading)
+  if (isLoading)
     return <div className="loading-state">Calculando posições...</div>;
 
   return (
@@ -111,7 +95,7 @@ export const Ranking: React.FC<{ onSelectUser: (id: string) => void }> = ({
       </header>
 
       <div className="ranking-list">
-        {users.map((user, index) => (
+        {usersData.map((user, index) => (
           <div
             key={user.id}
             onClick={() => onSelectUser(user.id)}
@@ -125,11 +109,11 @@ export const Ranking: React.FC<{ onSelectUser: (id: string) => void }> = ({
               <span className="username">{user.username}</span>
               <div className="user-analytics">
                 <span className="stat-tag">
-                  <Target size={14} /> <span>{user.precisao}%</span>
+                  <Target size={14} /> <span>{user.accuracy}%</span>
                   <span className="label-text"> precisão</span>
                 </span>
                 <span className="stat-tag">
-                  <TrendingUp size={14} /> <span>{user.acertos_exatos}</span>
+                  <TrendingUp size={14} /> <span>{user.exactMatches}</span>
                   <span className="label-text"> cravadas</span>
                 </span>
               </div>

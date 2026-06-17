@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../services/supabaseClient";
+import type { Match, Prediction } from "../types/database";
 import "./MatchList.css";
 
 export function MatchList({ userId }: { userId: string }) {
@@ -9,21 +10,21 @@ export function MatchList({ userId }: { userId: string }) {
     return new Date(date.getTime() - offset).toISOString().split("T")[0];
   };
 
-  const [dataFoco, setDataFoco] = useState(getLocalDate());
-  const [partidas, setPartidas] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [focusedDate, setFocusedDate] = useState(getLocalDate());
+  const [matches, setMatches] = useState<Match[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const [tempPalpites, setTempPalpites] = useState<
+  const [tempPredictions, setTempPredictions] = useState<
     Record<string, { a: number; b: number }>
   >({});
 
   useEffect(() => {
-    async function carregarPartidas() {
-      setLoading(true);
-      const startOfDay = `${dataFoco}T00:00:00-03:00`;
-      const endOfDay = `${dataFoco}T23:59:59-03:00`;
+    async function fetchMatches() {
+      setIsLoading(true);
+      const startOfDay = `${focusedDate}T00:00:00-03:00`;
+      const endOfDay = `${focusedDate}T23:59:59-03:00`;
 
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("partidas")
         .select(`*, palpites (id, palpite_a, palpite_b)`)
         .eq("palpites.usuario_id", userId)
@@ -31,29 +32,36 @@ export function MatchList({ userId }: { userId: string }) {
         .lte("data_inicio", endOfDay)
         .order("data_inicio", { ascending: true });
 
-      setPartidas(data || []);
-      setLoading(false);
-    }
-    carregarPartidas();
-  }, [dataFoco, userId]);
+      if (error) {
+        console.error("Fetch error:", error.message);
+      }
 
-  const alterarData = (dias: number) => {
-    const novaData = new Date(dataFoco + "T12:00:00");
-    novaData.setDate(novaData.getDate() + dias);
-    setDataFoco(novaData.toISOString().split("T")[0]);
+      setMatches((data as Match[]) || []);
+      setIsLoading(false);
+    }
+    fetchMatches();
+  }, [focusedDate, userId]);
+
+  const changeDate = (days: number) => {
+    const newDate = new Date(focusedDate + "T12:00:00");
+    newDate.setDate(newDate.getDate() + days);
+    setFocusedDate(newDate.toISOString().split("T")[0]);
   };
 
-  const handleSalvarPalpite = async (partidaId: string, palpiteId?: string) => {
-    const palpite = tempPalpites[partidaId];
-    if (!palpite) return;
+  const handleSavePrediction = async (
+    matchId: string,
+    predictionId?: string,
+  ) => {
+    const prediction = tempPredictions[matchId];
+    if (!prediction) return;
 
     if (
-      isNaN(palpite.a) ||
-      isNaN(palpite.b) ||
-      palpite.a < 0 ||
-      palpite.a > 99 ||
-      palpite.b < 0 ||
-      palpite.b > 99
+      isNaN(prediction.a) ||
+      isNaN(prediction.b) ||
+      prediction.a < 0 ||
+      prediction.a > 99 ||
+      prediction.b < 0 ||
+      prediction.b > 99
     ) {
       alert(
         "Por favor, insira um placar válido (apenas números entre 0 e 99).",
@@ -61,20 +69,20 @@ export function MatchList({ userId }: { userId: string }) {
       return;
     }
 
-    const valA = palpite.a;
-    const valB = palpite.b;
+    const valA = prediction.a;
+    const valB = prediction.b;
     let dbError = null;
 
-    if (palpiteId) {
+    if (predictionId) {
       const { error } = await supabase
         .from("palpites")
         .update({ palpite_a: valA, palpite_b: valB })
-        .eq("id", palpiteId);
+        .eq("id", predictionId);
       dbError = error;
     } else {
       const { error } = await supabase.from("palpites").insert({
         usuario_id: userId,
-        partida_id: partidaId,
+        partida_id: matchId,
         palpite_a: valA,
         palpite_b: valB,
       });
@@ -82,7 +90,7 @@ export function MatchList({ userId }: { userId: string }) {
     }
 
     if (dbError) {
-      console.error("Erro do Supabase:", dbError.message);
+      console.error("Supabase Error:", dbError.message);
       alert(
         "Erro ao salvar o palpite. O jogo já pode ter começado ou os dados são inválidos.",
       );
@@ -94,46 +102,46 @@ export function MatchList({ userId }: { userId: string }) {
   return (
     <div className="match-list">
       <div className="date-navigator">
-        <button onClick={() => alterarData(-1)} className="nav-btn">
+        <button onClick={() => changeDate(-1)} className="nav-btn">
           <img src="src/assets/arrow-left.svg" alt="Anterior" />
         </button>
 
         <input
           type="date"
-          value={dataFoco}
-          onChange={(e) => setDataFoco(e.target.value)}
+          value={focusedDate}
+          onChange={(e) => setFocusedDate(e.target.value)}
           className="date-input"
         />
 
-        <button onClick={() => alterarData(1)} className="nav-btn">
+        <button onClick={() => changeDate(1)} className="nav-btn">
           <img src="src/assets/arrow-right.svg" alt="Próximo" />
         </button>
       </div>
 
-      {loading ? (
+      {isLoading ? (
         <p className="loading">Carregando...</p>
-      ) : partidas.length === 0 ? (
+      ) : matches.length === 0 ? (
         <div className="empty-state">
           <h2>Sem jogos agendados para este dia.</h2>
         </div>
       ) : (
-        partidas.map((p) => {
-          const isAdefinir =
-            p.time_a === "A Definir" || p.time_b === "A Definir";
-          const agora = new Date().getTime();
-          const horaJogo = new Date(p.data_inicio).getTime();
-          const bloqueado = agora >= horaJogo - 10 * 60000 || isAdefinir;
-          const palpite = p.palpites?.[0];
+        matches.map((match) => {
+          const isToDefine =
+            match.time_a === "A Definir" || match.time_b === "A Definir";
+          const now = new Date().getTime();
+          const matchTime = new Date(match.data_inicio).getTime();
+          const isLocked = now >= matchTime - 10 * 60000 || isToDefine;
+          const predictionData: Prediction | undefined = match.palpites?.[0];
 
           return (
             <div
-              key={p.id}
-              className={`match-card ${bloqueado ? "locked" : ""}`}
+              key={match.id}
+              className={`match-card ${isLocked ? "locked" : ""}`}
             >
               <div className="match-info">
-                <span className="fase-tag">{p.fase}</span>
+                <span className="fase-tag">{match.fase}</span>
                 <span>
-                  {new Date(p.data_inicio).toLocaleTimeString("pt-BR", {
+                  {new Date(match.data_inicio).toLocaleTimeString("pt-BR", {
                     hour: "2-digit",
                     minute: "2-digit",
                   })}
@@ -142,14 +150,14 @@ export function MatchList({ userId }: { userId: string }) {
 
               <div className="scoreboard">
                 <div className="team">
-                  {p.time_a !== "A Definir" && p.emblema_mandante && (
+                  {match.time_a !== "A Definir" && match.emblema_mandante && (
                     <img
-                      src={p.emblema_mandante}
-                      alt={p.time_a}
+                      src={match.emblema_mandante}
+                      alt={match.time_a}
                       className="flag"
                     />
                   )}
-                  <div className="team-name">{p.time_a}</div>
+                  <div className="team-name">{match.time_a}</div>
                 </div>
 
                 <div className="inputs">
@@ -157,14 +165,17 @@ export function MatchList({ userId }: { userId: string }) {
                     type="number"
                     min="0"
                     max="99"
-                    disabled={bloqueado}
-                    defaultValue={palpite?.palpite_a}
+                    disabled={isLocked}
+                    defaultValue={predictionData?.palpite_a}
                     onChange={(e) =>
-                      setTempPalpites((prev) => ({
+                      setTempPredictions((prev) => ({
                         ...prev,
-                        [p.id]: {
+                        [match.id]: {
                           a: parseInt(e.target.value),
-                          b: tempPalpites[p.id]?.b ?? palpite?.palpite_b ?? 0,
+                          b:
+                            tempPredictions[match.id]?.b ??
+                            predictionData?.palpite_b ??
+                            0,
                         },
                       }))
                     }
@@ -174,13 +185,16 @@ export function MatchList({ userId }: { userId: string }) {
                     type="number"
                     min="0"
                     max="99"
-                    disabled={bloqueado}
-                    defaultValue={palpite?.palpite_b}
+                    disabled={isLocked}
+                    defaultValue={predictionData?.palpite_b}
                     onChange={(e) =>
-                      setTempPalpites((prev) => ({
+                      setTempPredictions((prev) => ({
                         ...prev,
-                        [p.id]: {
-                          a: tempPalpites[p.id]?.a ?? palpite?.palpite_a ?? 0,
+                        [match.id]: {
+                          a:
+                            tempPredictions[match.id]?.a ??
+                            predictionData?.palpite_a ??
+                            0,
                           b: parseInt(e.target.value),
                         },
                       }))
@@ -189,30 +203,33 @@ export function MatchList({ userId }: { userId: string }) {
                 </div>
 
                 <div className="team">
-                  {p.time_b !== "A Definir" && p.emblema_visitante && (
+                  {match.time_b !== "A Definir" && match.emblema_visitante && (
                     <img
-                      src={p.emblema_visitante}
-                      alt={p.time_b}
+                      src={match.emblema_visitante}
+                      alt={match.time_b}
                       className="flag"
                     />
                   )}
-                  <div className="team-name">{p.time_b}</div>
+                  <div className="team-name">{match.time_b}</div>
                 </div>
               </div>
 
-              {!bloqueado && (
+              {!isLocked && (
                 <button
                   className="btn-salvar"
-                  onClick={() => handleSalvarPalpite(p.id, palpite?.id)}
+                  onClick={() =>
+                    handleSavePrediction(match.id, predictionData?.id)
+                  }
                 >
                   Salvar Palpite
                 </button>
               )}
 
-              {agora >= horaJogo && !isAdefinir && (
+              {now >= matchTime && !isToDefine && (
                 <div className="official-result">
                   <span>
-                    Placar Oficial: {p.placar_a ?? "-"} x {p.placar_b ?? "-"}
+                    Placar Oficial: {match.placar_a ?? "-"} x{" "}
+                    {match.placar_b ?? "-"}
                   </span>
                 </div>
               )}
