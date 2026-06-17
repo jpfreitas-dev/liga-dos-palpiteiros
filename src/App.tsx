@@ -6,6 +6,7 @@ import { Ranking } from "./components/Ranking";
 import { HeaderUsuario } from "./components/HeaderUsuario";
 import { PerfilUsuario } from "./components/PerfilUsuario";
 import { TournamentSelection } from "./components/TournamentSelection";
+import { FilterBar } from "./components/FilterBar";
 import type { Session } from "@supabase/supabase-js";
 
 function App() {
@@ -17,18 +18,16 @@ function App() {
   const [activeTournamentId, setActiveTournamentId] = useState<string | null>(
     null,
   );
+  // Novo estado para filtros globais de tempo
+  const [daysFilter, setDaysFilter] = useState<number>(999);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-    });
-
+    supabase.auth
+      .getSession()
+      .then(({ data: { session } }) => setSession(session));
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-    });
-
+    } = supabase.auth.onAuthStateChange((_, session) => setSession(session));
     return () => subscription.unsubscribe();
   }, []);
 
@@ -48,7 +47,7 @@ function App() {
         >
           <HeaderUsuario
             usuarioId={session.user.id}
-            onOpenProfile={(id) => setSelectedProfileId(id)}
+            onOpenProfile={setSelectedProfileId}
           />
 
           {selectedProfileId ? (
@@ -58,16 +57,12 @@ function App() {
             />
           ) : !activeTournamentId ? (
             <TournamentSelection
-              onSelect={(id) => setActiveTournamentId(id)}
+              onSelect={setActiveTournamentId}
               onLogout={() => supabase.auth.signOut()}
             />
           ) : (
             <>
-              <header
-                style={{
-                  marginBottom: "2rem",
-                }}
-              >
+              <header style={{ marginBottom: "2rem" }}>
                 <button
                   className="btn-voltar"
                   onClick={() => setActiveTournamentId(null)}
@@ -77,22 +72,17 @@ function App() {
                     color: "var(--primary)",
                     cursor: "pointer",
                     fontWeight: "bold",
-                    fontSize: "1rem",
-                    display: "flex", // Adicionado flex para alinhar ícone
+                    display: "flex",
                     alignItems: "center",
-                    gap: "0.1rem",
+                    gap: "0.5rem",
                     padding: 0,
-                    marginBottom: "1rem", // Move o título para baixo
+                    marginBottom: "1rem",
                   }}
                 >
                   <img
                     src="src/assets/arrow-back.svg"
                     alt="Voltar"
-                    style={{
-                      width: "1.25rem",
-                      height: "1.25rem",
-                      marginBottom: "0.1rem",
-                    }}
+                    style={{ width: "1.25rem", height: "1.25rem" }}
                   />
                   <span>Voltar</span>
                 </button>
@@ -101,15 +91,24 @@ function App() {
                 </h2>
               </header>
 
+              {activeTab === "ranking" && (
+                <FilterBar onDaysChange={setDaysFilter} />
+              )}
+
               {activeTab === "jogos" ? (
                 <MatchList
                   userId={session.user.id}
                   tournamentId={activeTournamentId}
                 />
               ) : (
-                <Ranking onSelectUser={(id) => setSelectedProfileId(id)} />
+                <Ranking
+                  tournamentId={activeTournamentId}
+                  days={daysFilter}
+                  onSelectUser={setSelectedProfileId}
+                />
               )}
 
+              {/* Navegação inferior mantida */}
               <nav
                 style={{
                   position: "fixed",
@@ -137,8 +136,6 @@ function App() {
                         ? "var(--primary)"
                         : "var(--text-muted)",
                     cursor: "pointer",
-                    padding: "0.5rem",
-                    transition: "color 0.2s ease",
                   }}
                 >
                   Jogos
@@ -155,8 +152,6 @@ function App() {
                         ? "var(--primary)"
                         : "var(--text-muted)",
                     cursor: "pointer",
-                    padding: "0.5rem",
-                    transition: "color 0.2s ease",
                   }}
                 >
                   Ranking
@@ -169,5 +164,4 @@ function App() {
     </div>
   );
 }
-
 export default App;

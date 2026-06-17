@@ -10,80 +10,56 @@ interface UserStats extends UserProfile {
   accuracy: number;
 }
 
-export const Ranking: React.FC<{ onSelectUser: (id: string) => void }> = ({
-  onSelectUser,
-}) => {
+export const Ranking: React.FC<{
+  tournamentId: string;
+  days: number;
+  onSelectUser: (id: string) => void;
+}> = ({ tournamentId, days, onSelectUser }) => {
   const [usersData, setUsersData] = useState<UserStats[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const fetchRankingData = async (isInitialLoad = true) => {
-      if (isInitialLoad) setIsLoading(true);
+    const fetchRankingData = async () => {
+      setIsLoading(true);
 
-      const { data: profiles, error: profileError } = await supabase
-        .from("usuarios")
-        .select("*")
-        .order("pontuacao_total", { ascending: false });
+      try {
+        let data: any[] | null = [];
 
-      if (profileError || !profiles) return;
+        // Se 'days' for 999, usamos a View Geral, caso contrário, chamamos a RPC
+        if (days === 999) {
+          const { data: viewData } = await supabase
+            .from("view_ranking_geral")
+            .select("*");
+          data = viewData;
+        } else {
+          const { data: rpcData } = await supabase.rpc("get_ranking_filtrado", {
+            p_dias: days,
+          });
+          data = rpcData;
+        }
 
-      const { data: predictions, error: predictionError } = await supabase.from(
-        "palpites",
-      ).select(`
-          usuario_id, 
-          pontos_ganhos,
-          partidas!inner(status)
-        `);
-
-      if (predictionError) return;
-
-      const statsMap = profiles.map((user) => {
-        const finishedPredictions = predictions.filter(
-          (p: any) =>
-            p.usuario_id === user.id && p.partidas?.status === "FINISHED",
-        );
-
-        const totalFinished = finishedPredictions.length;
-        const exacts = finishedPredictions.filter(
-          (p) => p.pontos_ganhos === 7,
-        ).length;
-        const scored = finishedPredictions.filter(
-          (p) => p.pontos_ganhos > 0,
-        ).length;
-
-        return {
-          ...(user as UserProfile),
-          totalPredictions: totalFinished,
-          exactMatches: exacts,
-          accuracy:
-            totalFinished > 0 ? Math.round((scored / totalFinished) * 100) : 0,
-        };
-      });
-
-      setUsersData(statsMap);
-      if (isInitialLoad) setIsLoading(false);
+        if (data) {
+          // Nota: Como a view e RPC retornam dados agregados prontos,
+          // adaptamos para o seu tipo UserStats atual
+          const formattedData = data.map((item: any) => ({
+            id: item.usuario_id,
+            username: item.username,
+            pontuacao_total: item.total_pontos || 0,
+            totalPredictions: item.total_palpites || 0,
+            exactMatches: 0, // Campos adicionais podem ser agregados no SQL se desejar
+            accuracy: 0,
+          }));
+          setUsersData(formattedData);
+        }
+      } catch (error) {
+        console.error("Erro ao carregar ranking:", error);
+      } finally {
+        setIsLoading(false);
+      }
     };
 
-    fetchRankingData(true);
-
-    const channel = supabase
-      .channel("ranking_updates")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "palpites" },
-        () => fetchRankingData(false),
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "usuarios" },
-        () => fetchRankingData(false),
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, []);
+    fetchRankingData();
+  }, [days, tournamentId]); // Reage aos filtros globais
 
   if (isLoading)
     return <div className="loading-state">Calculando posições...</div>;

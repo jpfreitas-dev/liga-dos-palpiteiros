@@ -11,6 +11,7 @@ export interface Tournament {
   nome: string;
   ano: number;
   ativo: boolean;
+  codigo_api?: string;
 }
 
 export interface Prediction {
