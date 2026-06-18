@@ -1,0 +1,79 @@
+/* Container Principal */
+.settings-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.settings-container h3 {
+  margin: 0;
+  color: var(--text-main);
+  font-size: 1.5rem;
+}
+
+.settings-container p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+/* Lista de Torneios */
+.torneios-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  max-height: 400px;
+  overflow-y: auto;
+  padding-right: 0.5rem;
+}
+
+/* Customização da barra de rolagem */
+.torneios-list::-webkit-scrollbar {
+  width: 6px;
+}
+.torneios-list::-webkit-scrollbar-thumb {
+  background: #444;
+  border-radius: 4px;
+}
+
+/* Item do Torneio (O Botão) */
+.torneio-item {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 1.25rem 1rem;
+  background-color: #121214;
+  border: 2px solid #333333;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  color: var(--text-muted);
+  font-weight: 600;
+  font-size: 1rem;
+  user-select: none;
+  text-align: center;
+}
+
+/* Ocultar o checkbox nativo */
+.torneio-item input[type="checkbox"] {
+  display: none;
+}
+
+/* Efeito de Hover para itens não selecionados */
+.torneio-item:hover {
+  border-color: #555555;
+  background-color: #1a1a1c;
+}
+
+/* Estado Ativo (Selecionado) */
+.torneio-item.active {
+  border-color: var(--primary);
+  background-color: rgba(17, 202, 160, 0.1);
+  color: var(--primary);
+}
+
+.torneio-item.active:hover {
+  background-color: rgba(17, 202, 160, 0.15);
+}
