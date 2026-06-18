@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { supabase } from "../services/supabaseClient";
+import { useToast } from "../contexts/ToastContext";
 import "./LeagueSettings.css";
 
 interface Tournament {
@@ -18,37 +19,74 @@ export const LeagueSettings: React.FC<LeagueSettingsProps> = ({
 }) => {
   const [torneios, setTorneios] = useState<Tournament[]>([]);
   const [selecionados, setSelecionados] = useState<string[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const { addToast } = useToast();
 
   useEffect(() => {
-    const fetchData = async () => {
-      const { data } = await supabase
+    const fetchTorneios = async () => {
+      setIsLoading(true);
+      const { data, error } = await supabase
         .from("torneios")
         .select("id, nome")
         .eq("ativo", true);
-      setTorneios(data || []);
-      setLoading(false);
-    };
-    fetchData();
-  }, []);
 
-  const toggleTorneio = async (torneioId: string) => {
-    if (selecionados.includes(torneioId)) {
-      await supabase
-        .from("liga_torneios")
-        .delete()
-        .eq("liga_id", ligaId)
-        .eq("torneio_id", torneioId);
-      setSelecionados((prev) => prev.filter((id) => id !== torneioId));
+      if (error) {
+        addToast("Erro ao carregar a lista de torneios.", "error");
+      } else {
+        setTorneios(data || []);
+      }
+      setIsLoading(false);
+    };
+
+    fetchTorneios();
+  }, [addToast]);
+
+  const toggleTorneio = (torneioId: string) => {
+    setSelecionados((prev) => {
+      if (prev.includes(torneioId)) {
+        return prev.filter((id) => id !== torneioId);
+      }
+      return [...prev, torneioId];
+    });
+  };
+
+  const handleFinalize = async () => {
+    if (selecionados.length === 0) return;
+
+    setIsSaving(true);
+
+    // Prepara o array de objetos para inserção em lote (Bulk Insert)
+    const insercoes = selecionados.map((torneioId) => ({
+      liga_id: ligaId,
+      torneio_id: torneioId,
+    }));
+
+    const { error } = await supabase.from("liga_torneios").insert(insercoes);
+
+    setIsSaving(false);
+
+    if (error) {
+      addToast("Erro ao salvar os torneios vinculados.", "error");
     } else {
-      await supabase
-        .from("liga_torneios")
-        .insert({ liga_id: ligaId, torneio_id: torneioId });
-      setSelecionados((prev) => [...prev, torneioId]);
+      addToast("Liga configurada com sucesso!", "success");
+      onFinish(); // Fecha o modal e conclui a criação da liga
     }
   };
 
-  if (loading) return <div>Carregando torneios...</div>;
+  if (isLoading) {
+    return (
+      <div
+        className="settings-container"
+        style={{ textAlign: "center", padding: "2rem" }}
+      >
+        <p style={{ color: "var(--text-muted)" }}>
+          Carregando torneios disponíveis...
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="settings-container">
@@ -68,6 +106,7 @@ export const LeagueSettings: React.FC<LeagueSettingsProps> = ({
               type="checkbox"
               checked={selecionados.includes(t.id)}
               onChange={() => toggleTorneio(t.id)}
+              disabled={isSaving}
             />
             {t.nome}
           </label>
@@ -77,11 +116,11 @@ export const LeagueSettings: React.FC<LeagueSettingsProps> = ({
       <div className="modal-actions" style={{ marginTop: "2rem" }}>
         <button
           className="btn-primary"
-          onClick={onFinish}
-          disabled={selecionados.length === 0}
+          onClick={handleFinalize}
+          disabled={selecionados.length === 0 || isSaving}
           style={{ width: "100%" }}
         >
-          Finalizar Configuração
+          {isSaving ? "Salvando..." : "Finalizar Configuração"}
         </button>
       </div>
     </div>

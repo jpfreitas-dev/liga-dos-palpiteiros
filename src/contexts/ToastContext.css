@@ -1,15 +1,20 @@
-/* Container fixo no topo central */
 .toast-container {
   position: fixed;
   top: 1.5rem;
   left: 50%;
   transform: translateX(-50%);
-  z-index: 9999;
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
   align-items: center;
-  pointer-events: none; /* Permite clicar nos elementos que estão atrás da notificação invisível */
+  pointer-events: none;
+
+  /* Resets para anular a formatação padrão que o navegador dá para popovers */
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  overflow: visible;
 }
 
 /* Estilo individual de cada pílula de notificação */

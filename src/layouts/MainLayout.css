@@ -1,0 +1,65 @@
+/* Layout Mobile-First */
+.layout-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-color: var(--background, #09090b);
+}
+
+.main-content {
+  flex: 1;
+  padding-bottom: 80px; /* Espaço para não ficar atrás da navbar no mobile */
+  overflow-y: auto;
+}
+
+/* Navbar fixa na base (Mobile) */
+.main-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background-color: #121214;
+  border-top: 1px solid #333;
+  display: flex;
+  justify-content: center; /* No mobile a logo some, centraliza os links */
+  padding: 0.5rem 1rem;
+  z-index: 100;
+  padding-bottom: env(safe-area-inset-bottom, 0.5rem); /* Ajuste para iPhones */
+}
+
+.nav-brand {
+  display: none; /* Esconde no mobile para economizar espaço */
+}
+
+.nav-links {
+  display: flex;
+  width: 100%;
+  justify-content: space-around;
+  max-width: 500px;
+}
+
+.nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  color: var(--text-muted, #a1a1aa);
+  text-decoration: none;
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 0.5rem;
+  border-radius: var(--radius);
+  transition: all 0.2s;
+}
+
+.nav-item:hover {
+  color: var(--text-main, #ffffff);
+}
+
+.nav-item.active {
+  color: var(--primary, #11caa0);
+}
+
+.nav-item.active svg {
+  stroke-width: 2.5;
+}

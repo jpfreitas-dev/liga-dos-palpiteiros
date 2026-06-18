@@ -1,0 +1,154 @@
+.match-card {
+  background-color: var(--surface);
+  border: 1px solid #333333;
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  transition: border-color 0.2s;
+}
+
+.match-card:hover {
+  border-color: #555555;
+}
+
+.match-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #222222;
+  padding-bottom: 0.75rem;
+}
+
+.match-tags {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.tag-tournament {
+  background-color: rgba(17, 202, 160, 0.15);
+  color: var(--primary);
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.tag-round {
+  background-color: #222222;
+  color: var(--text-muted);
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+.match-time {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.match-teams {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.team {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex: 1;
+}
+
+.team:last-child {
+  justify-content: flex-end;
+  flex-direction: row-reverse;
+}
+
+.team-name {
+  font-weight: 600;
+  color: var(--text-main);
+  font-size: 1rem;
+}
+
+.team-shield {
+  width: 40px;
+  height: 40px;
+  background-color: #222222;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+}
+
+.match-inputs {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.input-score {
+  width: 48px;
+  height: 48px;
+  text-align: center;
+  font-size: 1.25rem;
+  font-weight: 700;
+  background-color: #121214;
+  border: 1px solid #444444;
+  color: var(--text-main);
+  border-radius: 8px;
+  transition: all 0.2s;
+}
+
+.input-score:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(17, 202, 160, 0.2);
+}
+
+/* Remove as setas numéricas padrão do input */
+.input-score::-webkit-outer-spin-button,
+.input-score::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.versus {
+  color: #666666;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.match-footer {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background-color: #121214;
+  padding: 0.75rem;
+  border-radius: 6px;
+}
+
+.footer-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.league-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.badge-league {
+  background-color: #222222;
+  color: #cccccc;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.7rem;
+}

@@ -87,7 +87,9 @@ export const LeagueManager: React.FC<{
     }
   };
 
-  const handleCreateLeague = async (e: React.FormEvent) => {
+  const handleCreateLeague = async (
+    e: React.SyntheticEvent<HTMLFormElement>,
+  ) => {
     e.preventDefault();
     const accessCode = Math.random().toString(36).substring(2, 8).toUpperCase();
 
@@ -113,7 +115,6 @@ export const LeagueManager: React.FC<{
     if (memberError) {
       addToast("Erro ao vincular você à nova liga.", "error");
     } else {
-      addToast("Liga criada com sucesso!", "success");
       createDialogRef.current?.close();
       setNewLeagueName("");
       fetchMyLeagues();
