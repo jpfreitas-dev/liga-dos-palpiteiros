@@ -1,0 +1,60 @@
+/* Container fixo no topo central */
+.toast-container {
+  position: fixed;
+  top: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  align-items: center;
+  pointer-events: none; /* Permite clicar nos elementos que estão atrás da notificação invisível */
+}
+
+/* Estilo individual de cada pílula de notificação */
+.toast-message {
+  pointer-events: auto;
+  background-color: #121214;
+  color: var(--text-main, #ffffff);
+  padding: 0.8rem 1.5rem;
+  border-radius: 99px; /* Formato de pílula */
+  font-size: 0.9rem;
+  font-weight: 600;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  animation: slideDown 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  border: 1px solid transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Variação de Sucesso */
+.toast-success {
+  border-color: rgba(17, 202, 160, 0.5);
+  color: var(--primary, #11caa0);
+}
+
+/* Variação de Erro */
+.toast-error {
+  border-color: rgba(255, 68, 68, 0.5);
+  color: #ff4444;
+}
+
+/* Variação de Informação */
+.toast-info {
+  border-color: rgba(100, 100, 100, 0.5);
+  color: #cccccc;
+}
+
+/* Animação suave descendo do topo */
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
