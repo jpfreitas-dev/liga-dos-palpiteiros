@@ -1,0 +1,99 @@
+.header-usuario {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.25rem;
+  background-color: var(--surface);
+  border-radius: 8px;
+  margin-bottom: 2rem;
+  border: 1px solid #333333;
+}
+
+.header-usuario.placeholder {
+  color: var(--text-muted);
+  justify-content: center;
+  font-weight: 500;
+}
+
+.perfil-info {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background-color: var(--primary);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  font-weight: bold;
+}
+
+.saudacao {
+  font-size: 1.25rem;
+  margin: 0;
+  color: var(--text-main);
+}
+
+.btn-logout {
+  background-color: transparent;
+  border: 1px solid #ff4444;
+  color: #ff4444;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background-color 0.2s ease;
+}
+
+.btn-logout:hover {
+  background-color: rgba(255, 68, 68, 0.1);
+}
+
+.logout-modal {
+  padding: 2rem;
+  border-radius: 8px;
+  border: 1px solid #333333;
+  background-color: var(--surface);
+  color: var(--text-main);
+  max-width: 400px;
+  width: 90%;
+}
+
+.logout-modal::backdrop {
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(2px);
+}
+
+.logout-modal h3 {
+  margin-top: 0;
+  margin-bottom: 0.5rem;
+  color: var(--text-main);
+  font-size: 1.25rem;
+}
+
+.logout-modal p {
+  color: var(--text-muted);
+  margin-bottom: 1.5rem;
+  line-height: 1.5;
+}
+
+.btn-danger {
+  background-color: #ff4444;
+  color: #ffffff;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background-color 0.2s ease;
+}
+
+.btn-danger:hover {
+  background-color: #cc0000;
+}

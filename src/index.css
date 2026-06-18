@@ -1,43 +1,27 @@
-/* src/index.css */
-
 :root {
-  font-size: 16px;
-
-  /* Design Tokens - Modo Escuro */
-  --primary: #4c9aff;
-  --primary-hover: #2684ff;
-  --bg-app: #121212;
-  --surface: #1e1e1e;
-  --text-main: #e0e0e0;
-  --text-muted: #a0a0a0;
-  --error: #ff5630;
-  --radius: 0.5rem;
-  --shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.5);
-}
-
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
+  --background: #121214;
+  --surface: #202024;
+  --primary: #11caa0;
+  --text-main: #e1e1e6;
+  --text-muted: #a8a8b3;
+  --radius: 8px;
 }
 
 body {
-  font-family:
-    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu,
-    Cantarell, sans-serif;
-  background-color: var(--bg-app);
+  margin: 0;
+  background-color: var(--background);
   color: var(--text-main);
-  line-height: 1.5;
+  font-family:
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  border: 0;
+/* Garante que os modais nativos fiquem invisíveis até serem chamados */
+dialog:not([open]) {
+  display: none;
 }

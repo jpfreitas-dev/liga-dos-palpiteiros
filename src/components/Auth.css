@@ -1,0 +1,133 @@
+.auth-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  padding: 1rem;
+  background-color: var(--background);
+}
+
+.auth-card {
+  background-color: var(--surface);
+  border: 1px solid #333333;
+  border-radius: 8px;
+  padding: 2.5rem;
+  width: 100%;
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+.auth-header {
+  text-align: center;
+}
+
+.auth-header h1 {
+  color: var(--primary);
+  margin: 0 0 0.5rem 0;
+  font-size: 1.75rem;
+}
+
+.auth-header p {
+  color: var(--text-muted);
+  margin: 0;
+  font-size: 0.875rem;
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.form-group label {
+  font-size: 0.875rem;
+  font-weight: bold;
+  color: var(--text-main);
+}
+
+.form-group input {
+  padding: 0.75rem;
+  border-radius: 4px;
+  border: 1px solid #444;
+  background-color: var(--background);
+  color: #fff;
+  font-size: 1rem;
+  transition: border-color 0.2s ease;
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+.btn-submit {
+  background-color: var(--primary);
+  color: #fff;
+  border: none;
+  padding: 0.875rem;
+  border-radius: 4px;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  margin-top: 0.5rem;
+  transition: background-color 0.2s ease;
+}
+
+.btn-submit:hover:not(:disabled) {
+  background-color: #0eab87;
+}
+
+.btn-submit:disabled {
+  background-color: #444;
+  color: #888;
+  cursor: not-allowed;
+}
+
+.auth-toggle {
+  text-align: center;
+  margin-top: 1rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #333;
+}
+
+.btn-toggle {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 0.875rem;
+}
+
+.btn-toggle:hover {
+  color: var(--text-main);
+  text-decoration: underline;
+}
+
+.auth-error {
+  background-color: rgba(255, 68, 68, 0.1);
+  color: #ff4444;
+  padding: 0.75rem;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 68, 68, 0.3);
+  font-size: 0.875rem;
+  text-align: center;
+}
+
+.auth-success {
+  background-color: rgba(17, 202, 160, 0.1);
+  color: var(--primary);
+  padding: 0.75rem;
+  border-radius: 4px;
+  border: 1px solid rgba(17, 202, 160, 0.3);
+  font-size: 0.875rem;
+  text-align: center;
+}

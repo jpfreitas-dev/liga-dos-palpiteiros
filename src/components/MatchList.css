@@ -1,0 +1,126 @@
+.match-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.match-card {
+  background-color: var(--surface);
+  border: 1px solid #333333;
+  border-radius: 8px;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.match-card.locked {
+  opacity: 0.8;
+}
+
+.match-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  border-bottom: 1px solid #333333;
+  padding-bottom: 0.5rem;
+}
+
+.match-phase {
+  font-weight: bold;
+  text-transform: uppercase;
+}
+
+.match-teams {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.team-block {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex: 1;
+}
+
+.team-block:last-child {
+  justify-content: flex-end;
+}
+
+.team-logo {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+}
+
+.team-name {
+  font-weight: bold;
+  font-size: 1.125rem;
+  color: var(--text-main);
+  text-transform: uppercase;
+}
+
+.match-vs {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: bold;
+  color: var(--text-muted);
+  width: 60px;
+}
+
+input[type="number"] {
+  width: 50px;
+  height: 50px;
+  text-align: center;
+  font-size: 1.5rem;
+  font-weight: bold;
+  background-color: var(--background);
+  border: 1px solid #444;
+  color: #ffffff;
+  border-radius: 8px;
+  appearance: textfield;
+}
+
+input[type="number"]:disabled {
+  background-color: #222;
+  color: #888;
+  border-color: #333;
+  cursor: not-allowed;
+}
+
+.btn-save {
+  background-color: var(--primary);
+  color: #ffffff;
+  border: none;
+  padding: 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  font-weight: bold;
+  text-transform: uppercase;
+  width: 100%;
+}
+
+.btn-save.saving {
+  background-color: #666;
+  cursor: wait;
+}
+
+.btn-save.saved {
+  background-color: #11caa0;
+}
+
+.match-footer {
+  display: flex;
+  justify-content: space-between;
+  background-color: rgba(17, 202, 160, 0.1);
+  padding: 0.75rem;
+  border-radius: 4px;
+  font-weight: bold;
+  font-size: 0.875rem;
+  color: #11caa0;
+}
