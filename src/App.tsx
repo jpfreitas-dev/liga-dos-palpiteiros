@@ -17,6 +17,7 @@ import { HeaderUsuario } from "./components/HeaderUsuario";
 import { LeagueManager } from "./components/LeagueManager";
 import { MatchList } from "./components/MatchList";
 import { Ranking } from "./components/Ranking";
+import { UserStats } from "./components/UserStats";
 
 // Contextos e Layouts
 import { ToastProvider } from "./contexts/ToastContext";
@@ -31,6 +32,10 @@ const LeagueView: React.FC = () => {
   const { leagueId } = useParams<{ leagueId: string }>();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<"jogos" | "ranking">("jogos");
+  const [selectedUser, setSelectedUser] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
 
   if (!leagueId) return <Navigate to="/ligas" />;
 
@@ -48,7 +53,20 @@ const LeagueView: React.FC = () => {
       {activeTab === "jogos" ? (
         <MatchList leagueId={leagueId} />
       ) : (
-        <Ranking ligaId={leagueId} onSelectUser={() => {}} />
+        <Ranking
+          ligaId={leagueId}
+          onSelectUser={(id, name) => setSelectedUser({ id, name })}
+        />
+      )}
+
+      {/* Modal de Estatísticas do Usuário */}
+      {selectedUser && (
+        <UserStats
+          userId={selectedUser.id}
+          ligaId={leagueId}
+          username={selectedUser.name}
+          onClose={() => setSelectedUser(null)}
+        />
       )}
 
       <nav className="bottom-nav">
@@ -94,7 +112,7 @@ const AppRoutes: React.FC<{ userId: string }> = ({ userId }) => {
           }
         />
 
-        <Route path="jogos" element={<GlobalMatches />} />
+        <Route path="jogos" element={<GlobalMatches userId={userId} />} />
       </Route>
 
       {/* Rota fora do MainLayout para a visão interna da liga */}
