@@ -70,7 +70,7 @@ export const LeagueSettings: React.FC<LeagueSettingsProps> = ({
     if (error) {
       addToast("Erro ao salvar os torneios vinculados.", "error");
     } else {
-      addToast("Liga configurada com sucesso!", "success");
+      addToast("Liga criada com sucesso!", "success");
       onFinish(); // Fecha o modal e conclui a criação da liga
     }
   };

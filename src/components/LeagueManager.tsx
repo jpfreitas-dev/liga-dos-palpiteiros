@@ -126,22 +126,42 @@ export const LeagueManager: React.FC<{
   };
 
   const handleExitLeague = async () => {
-    if (!selectedLeagueId) return;
+    if (!selectedLeagueId || !selectedLeagueData) return;
 
-    const { error } = await supabase
-      .from("membros_liga")
-      .delete()
-      .eq("liga_id", selectedLeagueId)
-      .eq("usuario_id", userId);
+    const isAdministrator = selectedLeagueData.admin_id === userId;
 
-    if (error) {
-      addToast("Erro ao tentar sair da liga.", "error");
+    if (isAdministrator) {
+      // Exclui a liga raiz. O banco de dados fará o CASCADE e removerá todos os membros automaticamente.
+      const { error } = await supabase
+        .from("ligas")
+        .delete()
+        .eq("id", selectedLeagueId);
+
+      if (error) {
+        addToast("Erro ao tentar excluir a liga.", "error");
+        return;
+      }
+
+      addToast("Liga excluída com sucesso.", "info");
     } else {
+      // Exclui apenas a inscrição do membro comum
+      const { error } = await supabase
+        .from("membros_liga")
+        .delete()
+        .eq("liga_id", selectedLeagueId)
+        .eq("usuario_id", userId);
+
+      if (error) {
+        addToast("Erro ao tentar sair da liga.", "error");
+        return;
+      }
+
       addToast("Você saiu da liga.", "info");
-      exitDialogRef.current?.close();
-      setExitCode("");
-      fetchMyLeagues();
     }
+
+    exitDialogRef.current?.close();
+    setExitCode("");
+    fetchMyLeagues();
   };
 
   // Trava o fechamento dos modais pela tecla ESC
@@ -308,21 +328,27 @@ export const LeagueManager: React.FC<{
         )}
       </dialog>
 
-      {/* Modal Sair */}
+      {/* Modal Sair / Excluir */}
       <dialog
         ref={exitDialogRef}
         className="league-modal"
         onCancel={handlePreventClose}
       >
-        <h3>Sair da Liga</h3>
+        <h3>
+          {selectedLeagueData?.admin_id === userId
+            ? "Excluir Liga"
+            : "Sair da Liga"}
+        </h3>
         <p>
-          Para sair, digite o código{" "}
+          {selectedLeagueData?.admin_id === userId
+            ? "Como administrador, sair desta liga irá excluí-la permanentemente para todos os membros. Para confirmar, digite o código "
+            : "Para sair, digite o código "}
           <strong>{selectedLeagueData?.codigo_acesso}</strong> no campo abaixo:
         </p>
         <input
           type="text"
           value={exitCode}
-          onChange={(e) => setExitCode(e.target.value)}
+          onChange={(e) => setExitCode(e.target.value.toUpperCase())}
           placeholder="Digite o código exato"
           autoFocus
         />
