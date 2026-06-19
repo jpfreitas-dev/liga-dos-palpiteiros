@@ -30,19 +30,56 @@
   gap: 1rem;
   background-color: var(--surface);
   border: 1px solid #333333;
+  border-left: 4px solid transparent;
   padding: 1rem;
   border-radius: 8px;
   cursor: pointer;
   transition:
     transform 0.2s ease,
     border-color 0.2s ease;
-}
 
-.ranking-item:hover,
-.ranking-item:focus {
-  transform: translateX(4px);
-  border-color: var(--primary);
-  outline: none;
+  /* Agrupamento de estados de interação */
+  &:hover {
+    transform: translateX(4px);
+    border-color: var(--primary);
+  }
+
+  &:focus-visible {
+    transform: translateX(4px);
+    border-color: var(--primary);
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+  }
+
+  /* Aninhamento das variações de pódio */
+  &.gold {
+    border-left-color: #ffd700;
+
+    .rank-position {
+      color: #ffd700;
+    }
+
+    .avatar {
+      background-color: rgba(255, 215, 0, 0.2);
+      color: #ffd700;
+    }
+  }
+
+  &.silver {
+    border-left-color: #c0c0c0;
+
+    .rank-position {
+      color: #c0c0c0;
+    }
+  }
+
+  &.bronze {
+    border-left-color: #cd7f32;
+
+    .rank-position {
+      color: #cd7f32;
+    }
+  }
 }
 
 .rank-position {
@@ -51,26 +88,6 @@
   color: var(--text-muted);
   width: 40px;
   text-align: center;
-}
-
-.ranking-item.gold .rank-position {
-  color: #ffd700;
-}
-.ranking-item.silver .rank-position {
-  color: #c0c0c0;
-}
-.ranking-item.bronze .rank-position {
-  color: #cd7f32;
-}
-
-.ranking-item.gold {
-  border-left: 4px solid #ffd700;
-}
-.ranking-item.silver {
-  border-left: 4px solid #c0c0c0;
-}
-.ranking-item.bronze {
-  border-left: 4px solid #cd7f32;
 }
 
 .avatar {
@@ -84,11 +101,6 @@
   justify-content: center;
   font-weight: bold;
   flex-shrink: 0;
-}
-
-.ranking-item.gold .avatar {
-  background-color: rgba(255, 215, 0, 0.2);
-  color: #ffd700;
 }
 
 .user-details {

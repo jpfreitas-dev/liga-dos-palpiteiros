@@ -5,7 +5,7 @@ import "./Ranking.css";
 
 interface RankingProps {
   ligaId: string;
-  onSelectUser: (userId: string) => void;
+  onSelectUser: (userId: string, username: string) => void;
 }
 
 export const Ranking: React.FC<RankingProps> = ({ ligaId, onSelectUser }) => {
@@ -73,7 +73,6 @@ export const Ranking: React.FC<RankingProps> = ({ ligaId, onSelectUser }) => {
 
       <ol className="ranking-list">
         {rankingData.map((user, index) => {
-          // const isTopThree = index < 3;
           const positionClass =
             index === 0
               ? "gold"
@@ -87,12 +86,13 @@ export const Ranking: React.FC<RankingProps> = ({ ligaId, onSelectUser }) => {
             <li
               key={user.usuario_id}
               className={`ranking-item ${positionClass}`}
-              onClick={() => onSelectUser(user.usuario_id)}
+              onClick={() => onSelectUser(user.usuario_id, user.username)}
               tabIndex={0}
               role="button"
               aria-label={`${index + 1}º lugar: ${user.username} com ${user.total_pontos} pontos`}
               onKeyDown={(e) => {
-                if (e.key === "Enter") onSelectUser(user.usuario_id);
+                if (e.key === "Enter")
+                  onSelectUser(user.usuario_id, user.username);
               }}
             >
               <div className="rank-position" aria-hidden="true">
