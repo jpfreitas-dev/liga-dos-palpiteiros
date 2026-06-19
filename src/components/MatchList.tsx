@@ -1,286 +1,154 @@
-import React, { useEffect, useState } from "react";
-import { supabase } from "../services/supabaseClient";
-import type { Partida, Palpite } from "../types/database";
-import "./MatchList.css";
+import React, { useState, useEffect } from "react";
+import "./MatchCard.css";
 
-interface MatchListProps {
-  leagueId: string;
-}
-
-interface MatchWithPrediction extends Partida {
-  userPrediction?: Palpite;
+interface MatchCardProps {
+  matchId: string;
+  siglaA: string;
+  siglaB: string;
+  escudoA: string;
+  escudoB: string;
+  torneioNome: string;
+  rodada: string;
+  horario: string;
+  initialPalpiteA?: number | null;
+  initialPalpiteB?: number | null;
   isLocked: boolean;
-}
-
-export const MatchList: React.FC<MatchListProps> = ({ leagueId }) => {
-  const [matches, setMatches] = useState<MatchWithPrediction[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [savingStatus, setSavingStatus] = useState<
-    Record<string, "saving" | "saved" | "error">
-  >({});
-
-  const fetchMatchesAndPredictions = async () => {
-    setIsLoading(true);
-
-    const { data: userData } = await supabase.auth.getUser();
-    const userId = userData.user?.id;
-
-    if (!userId) return;
-
-    try {
-      const { data: ligaTorneios, error: ltError } = await supabase
-        .from("liga_torneios")
-        .select("torneio_id")
-        .eq("liga_id", leagueId);
-
-      if (ltError) throw ltError;
-
-      const tournamentIds = ligaTorneios?.map((lt) => lt.torneio_id) || [];
-
-      if (tournamentIds.length === 0) {
-        setMatches([]);
-        setIsLoading(false);
-        return;
-      }
-
-      const { data: partidasData, error: matchesError } = await supabase
-        .from("partidas")
-        .select("*")
-        .in("torneio_id", tournamentIds)
-        .order("data_inicio", { ascending: true });
-
-      if (matchesError) throw matchesError;
-
-      const { data: palpitesData, error: predictionsError } = await supabase
-        .from("palpites")
-        .select("*")
-        .eq("usuario_id", userId);
-
-      if (predictionsError) throw predictionsError;
-
-      const now = new Date();
-
-      const combinedData: MatchWithPrediction[] = partidasData.map(
-        (partida) => {
-          const prediction = palpitesData.find(
-            (p) => p.partida_id === partida.id,
-          );
-          const matchStart = new Date(partida.data_inicio);
-          const locked = now >= matchStart || partida.status === "FT";
-
-          return {
-            ...partida,
-            userPrediction: prediction,
-            isLocked: locked,
-          };
-        },
-      );
-
-      setMatches(combinedData);
-    } catch (error) {
-      console.error("Erro ao buscar dados da liga:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchMatchesAndPredictions();
-  }, [leagueId]);
-
-  const handleSavePrediction = async (
+  isFinished: boolean;
+  placarRealA?: number | null;
+  placarRealB?: number | null;
+  pontosGanhos?: number | null;
+  onSavePrediction: (
     matchId: string,
     scoreA: number,
     scoreB: number,
-  ) => {
-    setSavingStatus((prev) => ({ ...prev, [matchId]: "saving" }));
+  ) => Promise<void>;
+}
 
-    const { data: userData } = await supabase.auth.getUser();
+export const MatchCard: React.FC<MatchCardProps> = ({
+  matchId,
+  siglaA,
+  siglaB,
+  escudoA,
+  escudoB,
+  torneioNome,
+  rodada,
+  horario,
+  initialPalpiteA,
+  initialPalpiteB,
+  isLocked,
+  isFinished,
+  placarRealA,
+  placarRealB,
+  pontosGanhos,
+  onSavePrediction,
+}) => {
+  const [valA, setValA] = useState<string>(initialPalpiteA?.toString() || "");
+  const [valB, setValB] = useState<string>(initialPalpiteB?.toString() || "");
+  const [isSaving, setIsSaving] = useState(false);
 
-    try {
-      const { error } = await supabase.from("palpites").upsert(
-        {
-          usuario_id: userData.user?.id,
-          partida_id: matchId,
-          palpite_a: scoreA,
-          palpite_b: scoreB,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: "usuario_id, partida_id" },
-      );
+  useEffect(() => {
+    setValA(initialPalpiteA?.toString() || "");
+    setValB(initialPalpiteB?.toString() || "");
+  }, [initialPalpiteA, initialPalpiteB]);
 
-      if (error) throw error;
+  const handleSave = async () => {
+    const numA = parseInt(valA, 10);
+    const numB = parseInt(valB, 10);
+    if (isNaN(numA) || isNaN(numB)) return;
 
-      setSavingStatus((prev) => ({ ...prev, [matchId]: "saved" }));
-      setTimeout(
-        () =>
-          setSavingStatus((prev) => {
-            const next = { ...prev };
-            delete next[matchId];
-            return next;
-          }),
-        2000,
-      );
-
-      // Atualiza o estado local para refletir o palpite salvo
-      setMatches((prevMatches) =>
-        prevMatches.map((m) =>
-          m.id === matchId
-            ? {
-                ...m,
-                userPrediction: {
-                  ...m.userPrediction,
-                  palpite_a: scoreA,
-                  palpite_b: scoreB,
-                } as Palpite,
-              }
-            : m,
-        ),
-      );
-    } catch (error) {
-      console.error("Erro ao salvar palpite:", error);
-      setSavingStatus((prev) => ({ ...prev, [matchId]: "error" }));
-    }
+    setIsSaving(true);
+    await onSavePrediction(matchId, numA, numB);
+    setIsSaving(false);
   };
 
-  const formatMatchTime = (utcString: string) => {
-    return new Intl.DateTimeFormat(undefined, {
-      weekday: "short",
-      day: "2-digit",
-      month: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-    }).format(new Date(utcString));
-  };
-
-  if (isLoading)
-    return (
-      <div className="loading-state" aria-live="polite">
-        Carregando jogos...
-      </div>
-    );
-
-  if (matches.length === 0) {
-    return (
-      <div className="empty-state">
-        <p>Esta liga ainda não possui torneios ativos ou jogos agendados.</p>
-        <p>
-          O administrador da liga precisa adicionar torneios nas configurações.
-        </p>
-      </div>
-    );
-  }
+  const hasPalpite = initialPalpiteA !== undefined && initialPalpiteA !== null;
 
   return (
-    <div className="match-list">
-      {matches.map((match) => (
-        <article
-          key={match.id}
-          className={`match-card ${match.isLocked ? "locked" : ""}`}
-        >
-          <header className="match-header">
-            <span className="match-phase">
-              {match.fase} {match.grupo ? `- ${match.grupo}` : ""}
-            </span>
-            <span className="match-time" aria-label="Data e hora da partida">
-              {formatMatchTime(match.data_inicio)}
-            </span>
-          </header>
+    <div className={`match-card-box ${isFinished ? "match-finished" : ""}`}>
+      <div className="match-card-meta">
+        <span className="tournament-tag">{torneioNome}</span>
+        <span className="phase-tag">{rodada}</span>
+      </div>
 
-          <form
-            className="match-teams"
-            onSubmit={(e) => {
-              e.preventDefault();
-              const target = e.target as HTMLFormElement;
-              const inputA = target.elements.namedItem(
-                `scoreA-${match.id}`,
-              ) as HTMLInputElement;
-              const inputB = target.elements.namedItem(
-                `scoreB-${match.id}`,
-              ) as HTMLInputElement;
-              handleSavePrediction(
-                match.id,
-                parseInt(inputA.value),
-                parseInt(inputB.value),
-              );
-            }}
-          >
-            <div className="team-block">
-              <img
-                src={match.emblema_mandante || ""}
-                alt={`Escudo do ${match.time_a}`}
-                className="team-logo"
-                loading="lazy"
-              />
-              <span className="team-name" title={match.time_a}>
-                {match.sigla_mandante || match.time_a}
-              </span>
-              <input
-                type="number"
-                name={`scoreA-${match.id}`}
-                defaultValue={match.userPrediction?.palpite_a ?? ""}
-                min="0"
-                max="20"
-                disabled={match.isLocked}
-                aria-disabled={match.isLocked}
-                aria-label={`Seu palpite de gols para o ${match.time_a}`}
-                required
-              />
+      <div className="match-card-teams-row">
+        {/* Time Mandante */}
+        <div className="team-column mandante">
+          <div className="team-emblem-container">
+            {escudoA && escudoA.startsWith("http") ? (
+              <img src={escudoA} alt={siglaA} className="team-emblem-img" />
+            ) : (
+              <div className="team-emblem-fallback">
+                {siglaA.substring(0, 2)}
+              </div>
+            )}
+          </div>
+          <span className="team-sigla">{siglaA}</span>
+        </div>
+
+        {/* Bloco Central de Placar e Palpites */}
+        <div className="match-core-center">
+          {isFinished ? (
+            <div className="real-result-display">
+              <span className="real-score">{placarRealA}</span>
+              <span className="score-divider">x</span>
+              <span className="real-score">{placarRealB}</span>
             </div>
-
-            <div className="match-vs">
-              <span>X</span>
-              {!match.isLocked && (
-                <button
-                  type="submit"
-                  className={`btn-save ${savingStatus[match.id] || ""}`}
-                  disabled={savingStatus[match.id] === "saving"}
-                >
-                  {savingStatus[match.id] === "saving"
-                    ? "..."
-                    : savingStatus[match.id] === "saved"
-                      ? "✓"
-                      : "Salvar"}
-                </button>
-              )}
-            </div>
-
-            <div className="team-block">
-              <input
-                type="number"
-                name={`scoreB-${match.id}`}
-                defaultValue={match.userPrediction?.palpite_b ?? ""}
-                min="0"
-                max="20"
-                disabled={match.isLocked}
-                aria-disabled={match.isLocked}
-                aria-label={`Seu palpite de gols para o ${match.time_b}`}
-                required
-              />
-              <span className="team-name" title={match.time_b}>
-                {match.sigla_visitante || match.time_b}
-              </span>
-              <img
-                src={match.emblema_visitante || ""}
-                alt={`Escudo do ${match.time_b}`}
-                className="team-logo"
-                loading="lazy"
-              />
-            </div>
-          </form>
-
-          {match.status === "FT" && (
-            <footer className="match-footer">
-              <span className="actual-score">
-                Placar Final: {match.placar_a} x {match.placar_b}
-              </span>
-              <span className="points-earned">
-                Pontos: {match.userPrediction?.pontos_ganhos ?? 0}
-              </span>
-            </footer>
+          ) : (
+            <div className="time-display">{horario}</div>
           )}
-        </article>
-      ))}
+
+          <div className="prediction-inputs-row">
+            <input
+              type="number"
+              min="0"
+              disabled={isLocked || isFinished}
+              value={valA}
+              onChange={(e) => setValA(e.target.value)}
+              className="prediction-field"
+            />
+            <span className="vs-text">x</span>
+            <input
+              type="number"
+              min="0"
+              disabled={isLocked || isFinished}
+              value={valB}
+              onChange={(e) => setValB(e.target.value)}
+              className="prediction-field"
+            />
+          </div>
+
+          {!isLocked && !isFinished && (
+            <button
+              onClick={handleSave}
+              disabled={isSaving || valA === "" || valB === ""}
+              className="save-prediction-btn"
+            >
+              {isSaving ? "..." : "Salvar"}
+            </button>
+          )}
+        </div>
+
+        {/* Time Visitante */}
+        <div className="team-column visitante">
+          <div className="team-emblem-container">
+            {escudoB && escudoB.startsWith("http") ? (
+              <img src={escudoB} alt={siglaB} className="team-emblem-img" />
+            ) : (
+              <div className="team-emblem-fallback">
+                {siglaB.substring(0, 2)}
+              </div>
+            )}
+          </div>
+          <span className="team-sigla">{siglaB}</span>
+        </div>
+      </div>
+
+      {hasPalpite && pontosGanhos !== undefined && pontosGanhos !== null && (
+        <div className={`points-badge-footer points-${pontosGanhos}`}>
+          +{pontosGanhos}{" "}
+          {pontosGanhos === 1 ? "ponto obtido" : "pontos obtidos"}
+        </div>
+      )}
     </div>
   );
 };
