@@ -7,9 +7,17 @@
   --radius: 8px;
 }
 
-body {
+html,
+body,
+#root {
   margin: 0;
+  padding: 0;
+  height: 100dvh;
+  overflow: hidden;
   background-color: var(--background);
+}
+
+body {
   color: var(--text-main);
   font-family:
     system-ui,

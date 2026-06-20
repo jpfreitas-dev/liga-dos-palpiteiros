@@ -6,14 +6,13 @@
 }
 
 .app-container {
-  /* 1.5rem (24px) de respiro nas laterais, com espaço extra embaixo para a navbar */
-  padding: 2rem 1.5rem 6rem 1.5rem;
   width: 100%;
   max-width: 48rem;
   margin: 0 auto;
   display: flex;
   flex-direction: column;
   gap: 2rem;
+  padding: 2rem 1.5rem;
 }
 
 /* Estilização da barra de topo dentro da Liga */

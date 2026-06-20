@@ -1,30 +1,39 @@
-/* Layout Mobile-First */
+/* Container raiz do app */
 .layout-container {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
-  background-color: var(--background, #09090b);
+  height: 100dvh; /* Altura exata da área visível do celular */
+  overflow: hidden; /* Isso trava a rolagem da página inteira no navegador */
+  background-color: var(--background, #121214);
 }
 
+/* Área central onde o conteúdo muda (Ligas, Jogos, Ranking) */
 .main-content {
-  flex: 1;
-  padding-bottom: 80px; /* Espaço para não ficar atrás da navbar no mobile */
-  overflow-y: auto;
+  flex: 1; /* Ocupa todo o espaço entre Header e Nav */
+  overflow-y: auto; /* O scroll acontece APENAS AQUI */
+  -webkit-overflow-scrolling: touch; /* Habilita a fluidez (inércia) no iOS */
+  overscroll-behavior-y: contain; /* Evita que o scroll arraste o container pai */
+  padding-bottom: 300px; /* Garante que o último item não fique escondido sob a nav */
+  scrollbar-width: none; /* Esconde scrollbar no Firefox */
 }
 
-/* Navbar fixa na base (Mobile) */
+.main-content::-webkit-scrollbar {
+  display: none; /* Esconde scrollbar no Chrome/Safari */
+}
+
+/* Navbar fixa na base */
 .main-nav {
-  position: fixed;
+  position: fixed; /* Fixa a barra no fundo */
   bottom: 0;
   left: 0;
   width: 100%;
+  height: 70px; /* Defina uma altura fixa */
   background-color: #121214;
   border-top: 1px solid #333;
   display: flex;
-  justify-content: center; /* No mobile a logo some, centraliza os links */
-  padding: 0.5rem 1rem;
+  justify-content: center;
   z-index: 100;
-  padding-bottom: env(safe-area-inset-bottom, 0.5rem); /* Ajuste para iPhones */
+  padding-bottom: env(safe-area-inset-bottom, 0);
 }
 
 .nav-brand {
