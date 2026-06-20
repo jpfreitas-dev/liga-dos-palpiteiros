@@ -87,7 +87,7 @@ export const DateNavigator: React.FC<DateNavigatorProps> = ({
         onClick={handleNextDay}
         aria-label="Próximo dia"
       >
-        <ChevronLeft size={20} style={{ transform: "rotate(180deg)" }} />
+        <ChevronRight size={20} />
       </button>
     </div>
   );
