@@ -48,7 +48,7 @@ export const HeaderUsuario: React.FC<HeaderUsuarioProps> = ({ usuarioId }) => {
         </div>
         <div>
           <h1 className="saudacao">
-            {perfil ? `Olá, ${perfil.username}` : "Perfil não encontrado"}
+            {perfil ? `${perfil.username}` : "Perfil não encontrado"}
           </h1>
         </div>
       </div>
