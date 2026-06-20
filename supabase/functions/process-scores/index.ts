@@ -170,39 +170,41 @@ async function calculateMatchPoints(
     let points = 0;
     let detalhes = "Errou o resultado";
 
-    const exactScore =
-      prediction.palpite_a === actualScoreA &&
-      prediction.palpite_b === actualScoreB;
-    const teamAWon =
-      actualScoreA > actualScoreB &&
-      prediction.palpite_a > prediction.palpite_b;
-    const teamBWon =
-      actualScoreB > actualScoreA &&
-      prediction.palpite_b > prediction.palpite_a;
-    const draw =
-      actualScoreA === actualScoreB &&
-      prediction.palpite_a === prediction.palpite_b;
-    const correctDiff =
-      prediction.palpite_a - prediction.palpite_b ===
-      actualScoreA - actualScoreB;
+    const palpiteA = prediction.palpite_a;
+    const palpiteB = prediction.palpite_b;
 
-    if (exactScore) {
-      points = 7;
+    // Cálculos de saldo (diferença)
+    const diffPalpite = palpiteA - palpiteB;
+    const diffActual = actualScoreA - actualScoreB;
+
+    // Cálculos de saldo absoluto (ignorando quem ganhou, apenas a quantidade)
+    const absDiffPalpite = Math.abs(diffPalpite);
+    const absDiffActual = Math.abs(diffActual);
+
+    // Cálculos de vencedor (retorna 1 para A, -1 para B, e 0 para empate)
+    const signPalpite = Math.sign(diffPalpite);
+    const signActual = Math.sign(diffActual);
+
+    // Lógica de Atribuição de Pontos
+    if (palpiteA === actualScoreA && palpiteB === actualScoreB) {
+      points = 10;
       detalhes = "Placar Exato (Cravada)";
-    } else if (teamAWon || teamBWon || draw) {
-      points = 4;
-      detalhes = "Acertou o Vencedor/Empate";
-    } else if (
-      prediction.palpite_a === actualScoreA ||
-      prediction.palpite_b === actualScoreB
-    ) {
-      points = 2;
-      detalhes = "Acertou os Gols de um Time";
-    } else if (correctDiff) {
+    } else if (diffPalpite === diffActual) {
+      // Se a diferença exata for igual, o usuário acertou o vencedor e o saldo automaticamente
+      points = 7;
+      detalhes = "Acertou o Vencedor e o Saldo";
+    } else if (signPalpite === signActual) {
+      points = 5;
+      detalhes = "Acertou Apenas o Vencedor";
+    } else if (palpiteA === actualScoreB && palpiteB === actualScoreA) {
+      points = 3;
+      detalhes = "Acertou o Placar Independente do Time";
+    } else if (absDiffPalpite === absDiffActual) {
       points = 1;
-      detalhes = "Acertou a Diferença de Gols";
+      detalhes = "Acertou o Saldo Independente do Time";
     }
 
+    // Atualiza no banco de dados apenas se a pontuação atual for diferente
     if (prediction.pontos_ganhos !== points) {
       await supabase
         .from("palpites")

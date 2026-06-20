@@ -1,6 +1,6 @@
 import React from "react";
 import { NavLink, Outlet } from "react-router-dom";
-import { Trophy, CalendarDays } from "lucide-react";
+import { Trophy, CalendarDays, Globe } from "lucide-react";
 import "./MainLayout.css";
 
 export const MainLayout: React.FC = () => {
@@ -26,6 +26,14 @@ export const MainLayout: React.FC = () => {
           >
             <CalendarDays size={24} />
             <span>Todos os Jogos</span>
+          </NavLink>
+
+          <NavLink
+            to="/ranking-global"
+            className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}
+          >
+            <Globe size={24} />
+            <span>Ranking Global</span>
           </NavLink>
         </div>
       </nav>

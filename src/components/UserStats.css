@@ -136,6 +136,18 @@
   font-size: 1.75rem;
 }
 
+/* Dourado para 10 Pontos */
+.card-gold {
+  border-left: 4px solid #ffd700;
+}
+.card-gold .stat-pts-header {
+  color: #ffd700;
+}
+.card-gold .stat-value {
+  color: #ffd700;
+}
+
+/* Verde para 7 Pontos */
 .card-green {
   border-left: 4px solid #10b981;
 }
@@ -146,6 +158,18 @@
   color: #10b981;
 }
 
+/* Roxo para 5 Pontos */
+.card-purple {
+  border-left: 4px solid #8b5cf6;
+}
+.card-purple .stat-pts-header {
+  color: #8b5cf6;
+}
+.card-purple .stat-value {
+  color: #8b5cf6;
+}
+
+/* Azul para 3 Pontos */
 .card-blue {
   border-left: 4px solid #3b82f6;
 }
@@ -156,16 +180,7 @@
   color: #3b82f6;
 }
 
-.card-yellow {
-  border-left: 4px solid #eab308;
-}
-.card-yellow .stat-pts-header {
-  color: #eab308;
-}
-.card-yellow .stat-value {
-  color: #eab308;
-}
-
+/* Laranja para 1 Ponto */
 .card-orange {
   border-left: 4px solid #f97316;
 }
@@ -176,6 +191,7 @@
   color: #f97316;
 }
 
+/* Vermelho para 0 Pontos */
 .card-red {
   border-left: 4px solid #ef4444;
 }

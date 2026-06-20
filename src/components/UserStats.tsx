@@ -2,19 +2,21 @@ import React, { useEffect, useState } from "react";
 import { supabase } from "../services/supabaseClient";
 import "./UserStats.css";
 
+// Interface atualizada para bater com os retornos das Views do banco
 interface Stats {
   total_palpites: number;
   total_pontos: number;
   cravadas: number;
-  vencedores: number;
-  placar_parcial: number;
-  diferenca: number;
+  acertos_saldo_vencedor: number;
+  acertos_vencedor: number;
+  acertos_placar_independente: number;
+  acertos_diferenca_independente: number;
   errados: number;
 }
 
 interface UserStatsProps {
   userId: string;
-  ligaId: string;
+  ligaId?: string; // Alterado para opcional (?)
   username: string;
   onClose: () => void;
 }
@@ -31,10 +33,33 @@ export const UserStats: React.FC<UserStatsProps> = ({
   useEffect(() => {
     const fetchStats = async () => {
       setLoading(true);
-      const { data, error } = await supabase.rpc("get_user_stats", {
-        p_liga_id: ligaId,
-        p_user_id: userId,
-      });
+      let data, error;
+
+      // Se um ligaId foi passado, busca as estatísticas filtradas por liga
+      if (ligaId) {
+        const response = await supabase.rpc("get_user_stats_liga", {
+          p_liga_id: ligaId,
+          p_user_id: userId,
+        });
+        data = response.data;
+        error = response.error;
+      }
+      // Se não tem ligaId, significa que foi chamado do Ranking Global
+      else {
+        const response = await supabase.rpc("get_user_stats", {
+          p_user_id: userId,
+        });
+        data = response.data;
+        error = response.error;
+      }
+
+      if (error) {
+        console.error(
+          "Erro retornado pelo Supabase na busca de estatísticas:",
+          error,
+        );
+      }
+
       if (!error && data && data.length > 0) {
         setStats(data[0]);
       }
@@ -52,7 +77,9 @@ export const UserStats: React.FC<UserStatsProps> = ({
     <div className="stats-overlay" onClick={onClose}>
       <div className="stats-modal" onClick={(e) => e.stopPropagation()}>
         <header className="stats-header">
-          <h3>Estatísticas de {username}</h3>
+          <h3>
+            Estatísticas {ligaId ? `de ${username}` : `Globais de ${username}`}
+          </h3>
           <button
             onClick={onClose}
             className="btn-close-modal"
@@ -89,10 +116,10 @@ export const UserStats: React.FC<UserStatsProps> = ({
             </div>
 
             {/* Cravadas */}
-            <div className="stat-row card-green">
+            <div className="stat-row card-gold">
               <div className="stat-info">
-                <span className="stat-pts-header">7 PONTOS:</span>
-                <span className="stat-label">CRAVADAS (VENCEDOR + PLACAR)</span>
+                <span className="stat-pts-header">10 PONTOS:</span>
+                <span className="stat-label">CRAVADAS (PLACAR EXATO)</span>
               </div>
               <div className="stat-numbers">
                 <span className="stat-value">{stats.cravadas}</span>
@@ -102,44 +129,81 @@ export const UserStats: React.FC<UserStatsProps> = ({
               </div>
             </div>
 
-            {/* Vencedor */}
+            {/* Vencedor + Saldo */}
+            <div className="stat-row card-green">
+              <div className="stat-info">
+                <span className="stat-pts-header">7 PONTOS:</span>
+                <span className="stat-label">ACERTOU O VENCEDOR E O SALDO</span>
+              </div>
+              <div className="stat-numbers">
+                <span className="stat-value">
+                  {stats.acertos_saldo_vencedor}
+                </span>
+                <span className="stat-percent">
+                  (
+                  {calcPercentage(
+                    stats.acertos_saldo_vencedor,
+                    stats.total_palpites,
+                  )}
+                  )
+                </span>
+              </div>
+            </div>
+
+            {/* Vencedor Simples */}
+            <div className="stat-row card-purple">
+              <div className="stat-info">
+                <span className="stat-pts-header">5 PONTOS:</span>
+                <span className="stat-label">ACERTOU APENAS O VENCEDOR</span>
+              </div>
+              <div className="stat-numbers">
+                <span className="stat-value">{stats.acertos_vencedor}</span>
+                <span className="stat-percent">
+                  (
+                  {calcPercentage(stats.acertos_vencedor, stats.total_palpites)}
+                  )
+                </span>
+              </div>
+            </div>
+
+            {/* Placar Independente */}
             <div className="stat-row card-blue">
               <div className="stat-info">
-                <span className="stat-pts-header">4 PONTOS:</span>
-                <span className="stat-label">ACERTOU O VENCEDOR</span>
+                <span className="stat-pts-header">3 PONTOS:</span>
+                <span className="stat-label">ACERTOU OS NÚMEROS DO PLACAR</span>
               </div>
               <div className="stat-numbers">
-                <span className="stat-value">{stats.vencedores}</span>
+                <span className="stat-value">
+                  {stats.acertos_placar_independente}
+                </span>
                 <span className="stat-percent">
-                  ({calcPercentage(stats.vencedores, stats.total_palpites)})
+                  (
+                  {calcPercentage(
+                    stats.acertos_placar_independente,
+                    stats.total_palpites,
+                  )}
+                  )
                 </span>
               </div>
             </div>
 
-            {/* Placar Parcial */}
-            <div className="stat-row card-yellow">
-              <div className="stat-info">
-                <span className="stat-pts-header">2 PONTOS:</span>
-                <span className="stat-label">ACERTOU O PLACAR</span>
-              </div>
-              <div className="stat-numbers">
-                <span className="stat-value">{stats.placar_parcial}</span>
-                <span className="stat-percent">
-                  ({calcPercentage(stats.placar_parcial, stats.total_palpites)})
-                </span>
-              </div>
-            </div>
-
-            {/* Diferença de Gols */}
+            {/* Saldo Independente */}
             <div className="stat-row card-orange">
               <div className="stat-info">
                 <span className="stat-pts-header">1 PONTO:</span>
-                <span className="stat-label">ACERTOU A DIFERENÇA DE GOLS</span>
+                <span className="stat-label">ACERTOU O SALDO DE GOLS</span>
               </div>
               <div className="stat-numbers">
-                <span className="stat-value">{stats.diferenca}</span>
+                <span className="stat-value">
+                  {stats.acertos_diferenca_independente}
+                </span>
                 <span className="stat-percent">
-                  ({calcPercentage(stats.diferenca, stats.total_palpites)})
+                  (
+                  {calcPercentage(
+                    stats.acertos_diferenca_independente,
+                    stats.total_palpites,
+                  )}
+                  )
                 </span>
               </div>
             </div>
@@ -148,7 +212,7 @@ export const UserStats: React.FC<UserStatsProps> = ({
             <div className="stat-row card-red">
               <div className="stat-info">
                 <span className="stat-pts-header">0 PONTOS:</span>
-                <span className="stat-label">PALPITES SEM PONTOS</span>
+                <span className="stat-label">PALPITES ERRADOS</span>
               </div>
               <div className="stat-numbers">
                 <span className="stat-value">{stats.errados}</span>
