@@ -1,152 +1,251 @@
-import React, { useState, useEffect } from "react";
-import "./MatchCard.css";
+import React, { useEffect, useState } from "react";
+import { supabase } from "../services/supabaseClient";
+import { MatchCard } from "./MatchCard";
+import { DateNavigator } from "./DateNavigator";
+import { useToast } from "../contexts/ToastContext";
+import type { Palpite } from "../types/database";
 
-interface MatchCardProps {
-  matchId: string;
-  siglaA: string;
-  siglaB: string;
-  escudoA: string;
-  escudoB: string;
-  torneioNome: string;
-  rodada: string;
-  horario: string;
-  initialPalpiteA?: number | null;
-  initialPalpiteB?: number | null;
-  isLocked: boolean;
-  isFinished: boolean;
-  placarRealA?: number | null;
-  placarRealB?: number | null;
-  pontosGanhos?: number | null;
-  onSavePrediction: (
+interface MatchListProps {
+  leagueId: string;
+}
+
+export const MatchList: React.FC<MatchListProps> = ({ leagueId }) => {
+  // Novo Estado: Cache com todos os jogos da liga
+  const [allMatchesCache, setAllMatchesCache] = useState<any[]>([]);
+  // Estado de exibição: Jogos filtrados para a data de hoje
+  const [matches, setMatches] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+
+  const { addToast } = useToast();
+
+  // useEffect PRINCIPAL: Busca todos os jogos da liga de uma vez
+  useEffect(() => {
+    const fetchLeagueMatchesAndPredictionsOnce = async () => {
+      setIsLoading(true);
+
+      const { data: userData } = await supabase.auth.getUser();
+      const userId = userData.user?.id;
+      if (!userId) return;
+
+      try {
+        const { data: ligaTorneios } = await supabase
+          .from("liga_torneios")
+          .select("torneio_id")
+          .eq("liga_id", leagueId);
+
+        if (!ligaTorneios || ligaTorneios.length === 0) {
+          setIsLoading(false);
+          return;
+        }
+
+        const torneioIds = ligaTorneios.map((lt: any) => lt.torneio_id);
+
+        // Busca TODAS as partidas ativas, sem filtrar por data
+        const { data: partidasData, error: matchesError } = await supabase
+          .from("partidas")
+          .select(
+            `
+            id,
+            time_a,
+            time_b,
+            sigla_mandante,
+            sigla_visitante,
+            emblema_mandante,
+            emblema_visitante,
+            fase,
+            data_inicio,
+            status,
+            placar_a,
+            placar_b,
+            torneios (nome)
+          `,
+          )
+          .in("torneio_id", torneioIds)
+          .order("data_inicio", { ascending: true });
+
+        if (matchesError) throw matchesError;
+
+        if (!partidasData || partidasData.length === 0) {
+          setIsLoading(false);
+          return;
+        }
+
+        const matchIds = partidasData.map((p) => p.id);
+        const { data: palpitesData, error: predictionsError } = await supabase
+          .from("palpites")
+          .select("*")
+          .eq("usuario_id", userId)
+          .in("partida_id", matchIds);
+
+        if (predictionsError) throw predictionsError;
+
+        // Monta o array gigante com todos os dados
+        const combinedData = partidasData.map((partida) => {
+          const prediction = palpitesData?.find(
+            (p) => p.partida_id === partida.id,
+          );
+          return {
+            ...partida,
+            userPrediction: prediction,
+          };
+        });
+
+        setAllMatchesCache(combinedData);
+      } catch (error: any) {
+        console.error("Erro técnico detalhado:", error);
+        addToast("Falha ao consultar o banco de dados.", "error");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchLeagueMatchesAndPredictionsOnce();
+  }, [leagueId, addToast]); // Independente da data
+
+  // useEffect SECUNDÁRIO: Filtra a data na memória RAM do celular
+  useEffect(() => {
+    if (allMatchesCache.length === 0) return;
+
+    const startOfDay = new Date(selectedDate);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(selectedDate);
+    endOfDay.setHours(23, 59, 59, 999);
+    const now = new Date();
+
+    const filteredMatches = allMatchesCache.filter((match) => {
+      const matchStart = new Date(match.data_inicio);
+      return matchStart >= startOfDay && matchStart <= endOfDay;
+    });
+
+    const displayReadyMatches = filteredMatches.map((match) => {
+      const matchStart = new Date(match.data_inicio);
+      const isAllowedStatus =
+        match.status === "SCHEDULED" || match.status === "TIMED";
+      const isLocked = now >= matchStart || !isAllowedStatus;
+
+      return {
+        ...match,
+        isLocked: isLocked,
+      };
+    });
+
+    setMatches(displayReadyMatches);
+  }, [selectedDate, allMatchesCache]);
+
+  const handleSavePrediction = async (
     matchId: string,
     scoreA: number,
     scoreB: number,
-  ) => Promise<void>;
-}
+  ) => {
+    const { data: userData } = await supabase.auth.getUser();
 
-export const MatchCard: React.FC<MatchCardProps> = ({
-  matchId,
-  siglaA,
-  siglaB,
-  escudoA,
-  escudoB,
-  torneioNome,
-  rodada,
-  horario,
-  initialPalpiteA,
-  initialPalpiteB,
-  isLocked,
-  isFinished,
-  placarRealA,
-  placarRealB,
-  pontosGanhos,
-  onSavePrediction,
-}) => {
-  const [valA, setValA] = useState<string>(initialPalpiteA?.toString() || "");
-  const [valB, setValB] = useState<string>(initialPalpiteB?.toString() || "");
-  const [isSaving, setIsSaving] = useState(false);
+    try {
+      const { error } = await supabase.from("palpites").upsert(
+        {
+          usuario_id: userData.user?.id,
+          partida_id: matchId,
+          palpite_a: scoreA,
+          palpite_b: scoreB,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "usuario_id, partida_id" },
+      );
 
-  useEffect(() => {
-    setValA(initialPalpiteA?.toString() || "");
-    setValB(initialPalpiteB?.toString() || "");
-  }, [initialPalpiteA, initialPalpiteB]);
+      if (error) throw error;
 
-  const handleSave = async () => {
-    const numA = parseInt(valA, 10);
-    const numB = parseInt(valB, 10);
-    if (isNaN(numA) || isNaN(numB)) return;
+      const updateFunction = (prevMatches: any[]) =>
+        prevMatches.map((m) =>
+          m.id === matchId
+            ? {
+                ...m,
+                userPrediction: {
+                  ...m.userPrediction,
+                  palpite_a: scoreA,
+                  palpite_b: scoreB,
+                } as Palpite,
+              }
+            : m,
+        );
 
-    setIsSaving(true);
-    await onSavePrediction(matchId, numA, numB);
-    setIsSaving(false);
+      setMatches(updateFunction);
+      setAllMatchesCache(updateFunction);
+
+      addToast("Palpite salvo com sucesso!", "success");
+    } catch (error) {
+      addToast("Erro ao registrar seu palpite. Tente novamente.", "error");
+    }
   };
 
-  const hasPalpite = initialPalpiteA !== undefined && initialPalpiteA !== null;
+  const formatTime = (dateString: string) => {
+    if (!dateString) return "--:--";
+    const date = new Date(dateString);
+    return date.toLocaleTimeString("pt-BR", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
 
   return (
-    <div className={`match-card-box ${isFinished ? "match-finished" : ""}`}>
-      <div className="match-card-meta">
-        <span className="tournament-tag">{torneioNome}</span>
-        <span className="phase-tag">{rodada}</span>
-      </div>
+    <div style={{ padding: "0 1rem", marginTop: "1rem" }}>
+      <DateNavigator
+        selectedDate={selectedDate}
+        onDateChange={setSelectedDate}
+      />
 
-      <div className="match-card-teams-row">
-        {/* Time Mandante */}
-        <div className="team-column mandante">
-          <div className="team-emblem-container">
-            {escudoA && escudoA.startsWith("http") ? (
-              <img src={escudoA} alt={siglaA} className="team-emblem-img" />
-            ) : (
-              <div className="team-emblem-fallback">
-                {siglaA.substring(0, 2)}
-              </div>
-            )}
-          </div>
-          <span className="team-sigla">{siglaA}</span>
+      {isLoading ? (
+        <div
+          style={{
+            textAlign: "center",
+            padding: "3rem",
+            color: "var(--text-muted)",
+          }}
+        >
+          <p>Carregando todas as partidas do torneio...</p>
         </div>
-
-        {/* Bloco Central de Placar e Palpites */}
-        <div className="match-core-center">
-          {isFinished ? (
-            <div className="real-result-display">
-              <span className="real-score">{placarRealA}</span>
-              <span className="score-divider">x</span>
-              <span className="real-score">{placarRealB}</span>
-            </div>
-          ) : (
-            <div className="time-display">{horario}</div>
-          )}
-
-          <div className="prediction-inputs-row">
-            <input
-              type="number"
-              min="0"
-              disabled={isLocked || isFinished}
-              value={valA}
-              onChange={(e) => setValA(e.target.value)}
-              className="prediction-field"
+      ) : matches.length === 0 ? (
+        <div
+          style={{
+            textAlign: "center",
+            padding: "3rem",
+            color: "var(--text-muted)",
+          }}
+        >
+          <p>
+            Nenhuma partida programada para os torneios desta liga na data
+            selecionada.
+          </p>
+        </div>
+      ) : (
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: "1rem",
+            marginTop: "1rem",
+          }}
+        >
+          {matches.map((match) => (
+            <MatchCard
+              key={match.id}
+              matchId={match.id}
+              siglaA={match.sigla_mandante || match.time_a}
+              siglaB={match.sigla_visitante || match.time_b}
+              escudoA={match.emblema_mandante || match.time_a.substring(0, 3)}
+              escudoB={match.emblema_visitante || match.time_b.substring(0, 3)}
+              torneioNome={match.torneios?.nome || "Torneio"}
+              rodada={match.fase || "Fase"}
+              horario={formatTime(match.data_inicio)}
+              initialPalpiteA={match.userPrediction?.palpite_a}
+              initialPalpiteB={match.userPrediction?.palpite_b}
+              isLocked={match.isLocked}
+              isFinished={match.status === "FINISHED" || match.status === "FT"}
+              placarRealA={match.placar_a}
+              placarRealB={match.placar_b}
+              pontosGanhos={match.userPrediction?.pontos_ganhos}
+              onSavePrediction={handleSavePrediction}
             />
-            <span className="vs-text">x</span>
-            <input
-              type="number"
-              min="0"
-              disabled={isLocked || isFinished}
-              value={valB}
-              onChange={(e) => setValB(e.target.value)}
-              className="prediction-field"
-            />
-          </div>
-
-          {!isLocked && !isFinished && (
-            <button
-              onClick={handleSave}
-              disabled={isSaving || valA === "" || valB === ""}
-              className="save-prediction-btn"
-            >
-              {isSaving ? "..." : "Salvar"}
-            </button>
-          )}
-        </div>
-
-        {/* Time Visitante */}
-        <div className="team-column visitante">
-          <div className="team-emblem-container">
-            {escudoB && escudoB.startsWith("http") ? (
-              <img src={escudoB} alt={siglaB} className="team-emblem-img" />
-            ) : (
-              <div className="team-emblem-fallback">
-                {siglaB.substring(0, 2)}
-              </div>
-            )}
-          </div>
-          <span className="team-sigla">{siglaB}</span>
-        </div>
-      </div>
-
-      {hasPalpite && pontosGanhos !== undefined && pontosGanhos !== null && (
-        <div className={`points-badge-footer points-${pontosGanhos}`}>
-          +{pontosGanhos}{" "}
-          {pontosGanhos === 1 ? "ponto obtido" : "pontos obtidos"}
+          ))}
         </div>
       )}
     </div>

@@ -291,6 +291,7 @@ export const LeagueManager: React.FC<{
           <input
             type="text"
             placeholder="Nome da Liga"
+            maxLength={20}
             value={newLeagueName}
             onChange={(e) => setNewLeagueName(e.target.value)}
             required

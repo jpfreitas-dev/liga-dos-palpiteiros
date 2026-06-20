@@ -11,48 +11,35 @@ interface GlobalMatchesProps {
 }
 
 export const GlobalMatches: React.FC<GlobalMatchesProps> = ({ userId }) => {
-  // Novo Estado: Armazena o "pacote" gigante com todos os jogos
   const [allMatchesCache, setAllMatchesCache] = useState<any[]>([]);
-  // Estado de exibição: Mostra apenas o que for filtrado pela data
   const [matches, setMatches] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
 
   const { addToast } = useToast();
 
-  // useEffect PRINCIPAL: Roda apenas UMA VEZ na montagem do componente (ou se o userId mudar)
   useEffect(() => {
     const fetchAllDataOnce = async () => {
       setIsLoading(true);
 
       try {
-        // 1. Pega os torneios que o usuário participa
-        const { data: membros } = await supabase
-          .from("membros_liga")
-          .select("liga_id")
-          .eq("usuario_id", userId);
+        // 1. Busca todos os torneios que estão ATIVOS no sistema (Global)
+        const { data: torneiosAtivos, error: torneiosError } = await supabase
+          .from("torneios")
+          .select("id")
+          .eq("ativo", true);
 
-        if (!membros || membros.length === 0) {
+        if (torneiosError) throw torneiosError;
+
+        if (!torneiosAtivos || torneiosAtivos.length === 0) {
+          setAllMatchesCache([]);
           setIsLoading(false);
           return;
         }
 
-        const ligaIds = membros.map((m: any) => m.liga_id);
-        const { data: ligaTorneios } = await supabase
-          .from("liga_torneios")
-          .select("torneio_id")
-          .in("liga_id", ligaIds);
+        const torneioIds = torneiosAtivos.map((t) => t.id);
 
-        if (!ligaTorneios || ligaTorneios.length === 0) {
-          setIsLoading(false);
-          return;
-        }
-
-        const torneioIds = [
-          ...new Set(ligaTorneios.map((lt: any) => lt.torneio_id)),
-        ];
-
-        // 2. Busca TODAS as partidas ativas desses torneios (sem filtro de data)
+        // 2. Busca TODAS as partidas desses torneios ativos
         const { data: partidasData, error: matchesError } = await supabase
           .from("partidas")
           .select(
@@ -76,7 +63,9 @@ export const GlobalMatches: React.FC<GlobalMatchesProps> = ({ userId }) => {
           .order("data_inicio", { ascending: true });
 
         if (matchesError) throw matchesError;
+
         if (!partidasData || partidasData.length === 0) {
+          setAllMatchesCache([]);
           setIsLoading(false);
           return;
         }
@@ -112,27 +101,22 @@ export const GlobalMatches: React.FC<GlobalMatchesProps> = ({ userId }) => {
     };
 
     fetchAllDataOnce();
-  }, [userId, addToast]); // ARRAY DE DEPENDÊNCIAS VAZIO/ESTÁTICO: A DATA NÃO ESTÁ AQUI.
+  }, [userId, addToast]);
 
-  // useEffect SECUNDÁRIO: Roda localmente toda vez que o usuário CLICA na data
   useEffect(() => {
-    // Se o cache ainda estiver vazio, não faz nada
     if (allMatchesCache.length === 0) return;
 
-    // Define os limites da data selecionada na tela
     const startOfDay = new Date(selectedDate);
     startOfDay.setHours(0, 0, 0, 0);
     const endOfDay = new Date(selectedDate);
     endOfDay.setHours(23, 59, 59, 999);
     const now = new Date();
 
-    // Filtra o CACHE na memória RAM do aparelho (ZERO requisições ao Supabase)
     const filteredMatches = allMatchesCache.filter((match) => {
       const matchStart = new Date(match.data_inicio);
       return matchStart >= startOfDay && matchStart <= endOfDay;
     });
 
-    // Aplica a regra visual de travamento
     const displayReadyMatches = filteredMatches.map((match) => {
       const matchStart = new Date(match.data_inicio);
       const isAllowedStatus =
@@ -146,7 +130,7 @@ export const GlobalMatches: React.FC<GlobalMatchesProps> = ({ userId }) => {
     });
 
     setMatches(displayReadyMatches);
-  }, [selectedDate, allMatchesCache]); // Este efeito roda apenas no cliente
+  }, [selectedDate, allMatchesCache]);
 
   const handleSavePrediction = async (
     matchId: string,
@@ -154,7 +138,6 @@ export const GlobalMatches: React.FC<GlobalMatchesProps> = ({ userId }) => {
     scoreB: number,
   ) => {
     try {
-      // O único POST para o banco de dados ocorre quando o usuário decide salvar
       const { error } = await supabase.from("palpites").upsert(
         {
           usuario_id: userId,
@@ -168,7 +151,6 @@ export const GlobalMatches: React.FC<GlobalMatchesProps> = ({ userId }) => {
 
       if (error) throw error;
 
-      // Atualiza o estado visual na tela E no cache
       const updateFunction = (prevMatches: any[]) =>
         prevMatches.map((m) =>
           m.id === matchId
@@ -184,7 +166,7 @@ export const GlobalMatches: React.FC<GlobalMatchesProps> = ({ userId }) => {
         );
 
       setMatches(updateFunction);
-      setAllMatchesCache(updateFunction); // Atualiza o cache principal também
+      setAllMatchesCache(updateFunction);
 
       addToast("Palpite salvo!", "success");
     } catch (error) {
@@ -224,7 +206,7 @@ export const GlobalMatches: React.FC<GlobalMatchesProps> = ({ userId }) => {
             color: "var(--text-muted)",
           }}
         >
-          <p>Sincronizando banco de dados pela primeira vez...</p>
+          <p>Sincronizando banco de dados...</p>
         </div>
       ) : matches.length === 0 ? (
         <div

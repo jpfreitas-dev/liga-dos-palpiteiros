@@ -17,6 +17,7 @@ import { HeaderUsuario } from "./components/HeaderUsuario";
 import { LeagueManager } from "./components/LeagueManager";
 import { MatchList } from "./components/MatchList";
 import { Ranking } from "./components/Ranking";
+import { GlobalRanking } from "./components/GlobalRanking"; // NOVO IMPORT
 import { UserStats } from "./components/UserStats";
 
 // Contextos e Layouts
@@ -26,7 +27,6 @@ import "./App.css";
 
 /* -------------------------------------------------------------------------- */
 /* COMPONENTE AUXILIAR: Tela Interna da Liga                                  */
-/* Extraímos a sua lógica de "dentro da liga" para funcionar com rotas        */
 /* -------------------------------------------------------------------------- */
 const LeagueView: React.FC = () => {
   const { leagueId } = useParams<{ leagueId: string }>();
@@ -43,7 +43,7 @@ const LeagueView: React.FC = () => {
     <>
       <header className="liga-header">
         <button className="btn-back" onClick={() => navigate("/ligas")}>
-          ← Ligas
+          Voltar
         </button>
         <h2 className="tab-title">
           {activeTab === "jogos" ? "Partidas" : "Ranking"}
@@ -59,7 +59,6 @@ const LeagueView: React.FC = () => {
         />
       )}
 
-      {/* Modal de Estatísticas do Usuário */}
       {selectedUser && (
         <UserStats
           userId={selectedUser.id}
@@ -89,35 +88,52 @@ const LeagueView: React.FC = () => {
 
 /* -------------------------------------------------------------------------- */
 /* GERENCIADOR DE ROTAS                                                       */
-/* Precisa estar dentro do <Router> para usar o hook useNavigate              */
 /* -------------------------------------------------------------------------- */
 const AppRoutes: React.FC<{ userId: string }> = ({ userId }) => {
   const navigate = useNavigate();
+  // Estado para controlar o modal global de estatísticas
+  const [selectedGlobalUser, setSelectedGlobalUser] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
 
   return (
-    <Routes>
-      {/* Rotas envelopadas pelo MainLayout (com a barra de navegação global) */}
-      <Route path="/" element={<MainLayout />}>
-        {/* Redireciona a raiz para a tela de ligas */}
-        <Route index element={<Navigate to="/ligas" replace />} />
+    <>
+      <Routes>
+        <Route path="/" element={<MainLayout />}>
+          <Route index element={<Navigate to="/ligas" replace />} />
+          <Route
+            path="ligas"
+            element={
+              <LeagueManager
+                userId={userId}
+                onSelectLeague={(id) => navigate(`/ligas/${id}`)}
+              />
+            }
+          />
+          <Route path="jogos" element={<GlobalMatches userId={userId} />} />
+          <Route
+            path="ranking-global"
+            element={
+              <GlobalRanking
+                onSelectUser={(id, name) => setSelectedGlobalUser({ id, name })}
+              />
+            }
+          />
+        </Route>
+        <Route path="/ligas/:leagueId" element={<LeagueView />} />
+      </Routes>
 
-        <Route
-          path="ligas"
-          element={
-            <LeagueManager
-              userId={userId}
-              // Ao clicar em "Acessar Liga", o Router muda a URL
-              onSelectLeague={(id) => navigate(`/ligas/${id}`)}
-            />
-          }
+      {/* Modal de Estatísticas Globais (acionado pela tela de ranking global) */}
+      {selectedGlobalUser && (
+        <UserStats
+          userId={selectedGlobalUser.id}
+          username={selectedGlobalUser.name}
+          // ligaId omitido intencionalmente para buscar dados globais
+          onClose={() => setSelectedGlobalUser(null)}
         />
-
-        <Route path="jogos" element={<GlobalMatches userId={userId} />} />
-      </Route>
-
-      {/* Rota fora do MainLayout para a visão interna da liga */}
-      <Route path="/ligas/:leagueId" element={<LeagueView />} />
-    </Routes>
+      )}
+    </>
   );
 };
 
@@ -126,28 +142,41 @@ const AppRoutes: React.FC<{ userId: string }> = ({ userId }) => {
 /* -------------------------------------------------------------------------- */
 function App() {
   const [session, setSession] = useState<Session | null>(null);
+  const [isRecovering, setIsRecovering] = useState(false);
 
   useEffect(() => {
+    const hash = window.location.hash;
+    const search = window.location.search;
+
+    // Trava no modo de recuperação se o token for identificado
+    if (hash.includes("type=recovery") || search.includes("type=recovery")) {
+      setIsRecovering(true);
+    }
+
     supabase.auth
       .getSession()
       .then(({ data: { session } }) => setSession(session));
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_, session) => setSession(session));
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "PASSWORD_RECOVERY") {
+        setIsRecovering(true);
+      }
+      setSession(session);
+    });
 
     return () => subscription.unsubscribe();
   }, []);
 
-  if (!session) return <Auth />;
+  // Passamos a prop isRecovering explícita para resolver o erro do TypeScript
+  if (!session || isRecovering) return <Auth isRecovering={isRecovering} />;
 
   return (
     <ToastProvider>
       <Router>
         <main className="app-container">
-          {/* HeaderUsuario fica fora das rotas para persistir no topo */}
           <HeaderUsuario usuarioId={session.user.id} />
-
           <AppRoutes userId={session.user.id} />
         </main>
       </Router>

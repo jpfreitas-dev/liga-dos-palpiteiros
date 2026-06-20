@@ -69,6 +69,44 @@
   border-color: var(--primary);
 }
 
+/* Regras do Input Wrapper e do Ícone de Visibilidade */
+.input-wrapper {
+  position: relative;
+  display: flex;
+  width: 100%;
+}
+
+.input-wrapper input {
+  width: 100%;
+  /* O padding-right extra é essencial para o texto digitado não passar por baixo do ícone */
+  padding-right: 2.5rem;
+}
+
+.toggle-visibility {
+  position: absolute;
+  right: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: color 0.2s ease;
+}
+
+.toggle-visibility:hover {
+  color: var(--primary);
+}
+
+.toggle-visibility:focus {
+  outline: none;
+}
+/* Fim das regras do ícone */
+
 .btn-submit {
   background-color: var(--primary);
   color: #fff;
@@ -130,4 +168,27 @@
   border: 1px solid rgba(17, 202, 160, 0.3);
   font-size: 0.875rem;
   text-align: center;
+}
+
+.password-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  width: 100%;
+}
+
+.btn-forgot-password {
+  background: none;
+  border: none;
+  color: var(--primary);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  transition: opacity 0.2s ease;
+}
+
+.btn-forgot-password:hover {
+  opacity: 0.8;
+  text-decoration: underline;
 }
