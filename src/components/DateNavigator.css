@@ -8,13 +8,6 @@
   padding: 0.5rem 1rem;
   width: 100%;
   box-sizing: border-box;
-
-  -webkit-user-select: none; /* Safari */
-  -moz-user-select: none; /* Firefox */
-  -ms-user-select: none; /* IE/Edge */
-  user-select: none; /* Padrão */
-  /* Remove aquele retângulo azul que aparece ao clicar no mobile */
-  -webkit-tap-highlight-color: transparent;
 }
 
 .nav-date-btn {

@@ -164,7 +164,7 @@ export const Auth: React.FC<AuthProps> = ({ isRecovering = false }) => {
     <div className="auth-container">
       <div className="auth-card">
         <header className="auth-header">
-          <h1>Ligas dos Palpiteiros</h1>
+          <h1>Liga dos Palpiteiros</h1>
           <p>{getHeaderText()}</p>
         </header>
 
