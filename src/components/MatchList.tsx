@@ -4,22 +4,20 @@ import { MatchCard } from "./MatchCard";
 import { DateNavigator } from "./DateNavigator";
 import { useToast } from "../contexts/ToastContext";
 import type { Palpite } from "../types/database";
+import "./MatchList.css"; // Certifique-se de importar o CSS aqui
 
 interface MatchListProps {
   leagueId: string;
 }
 
 export const MatchList: React.FC<MatchListProps> = ({ leagueId }) => {
-  // Novo Estado: Cache com todos os jogos da liga
   const [allMatchesCache, setAllMatchesCache] = useState<any[]>([]);
-  // Estado de exibição: Jogos filtrados para a data de hoje
   const [matches, setMatches] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
 
   const { addToast } = useToast();
 
-  // useEffect PRINCIPAL: Busca todos os jogos da liga de uma vez
   useEffect(() => {
     const fetchLeagueMatchesAndPredictionsOnce = async () => {
       setIsLoading(true);
@@ -41,7 +39,6 @@ export const MatchList: React.FC<MatchListProps> = ({ leagueId }) => {
 
         const torneioIds = ligaTorneios.map((lt: any) => lt.torneio_id);
 
-        // Busca TODAS as partidas ativas, sem filtrar por data
         const { data: partidasData, error: matchesError } = await supabase
           .from("partidas")
           .select(
@@ -80,7 +77,6 @@ export const MatchList: React.FC<MatchListProps> = ({ leagueId }) => {
 
         if (predictionsError) throw predictionsError;
 
-        // Monta o array gigante com todos os dados
         const combinedData = partidasData.map((partida) => {
           const prediction = palpitesData?.find(
             (p) => p.partida_id === partida.id,
@@ -101,9 +97,8 @@ export const MatchList: React.FC<MatchListProps> = ({ leagueId }) => {
     };
 
     fetchLeagueMatchesAndPredictionsOnce();
-  }, [leagueId, addToast]); // Independente da data
+  }, [leagueId, addToast]);
 
-  // useEffect SECUNDÁRIO: Filtra a data na memória RAM do celular
   useEffect(() => {
     if (allMatchesCache.length === 0) return;
 
@@ -187,44 +182,25 @@ export const MatchList: React.FC<MatchListProps> = ({ leagueId }) => {
   };
 
   return (
-    <div style={{ padding: "0 1rem", marginTop: "1rem" }}>
+    <div className="match-list-container">
       <DateNavigator
         selectedDate={selectedDate}
         onDateChange={setSelectedDate}
       />
 
       {isLoading ? (
-        <div
-          style={{
-            textAlign: "center",
-            padding: "3rem",
-            color: "var(--text-muted)",
-          }}
-        >
+        <div className="text-center p-8 text-muted">
           <p>Carregando todas as partidas do torneio...</p>
         </div>
       ) : matches.length === 0 ? (
-        <div
-          style={{
-            textAlign: "center",
-            padding: "3rem",
-            color: "var(--text-muted)",
-          }}
-        >
+        <div className="text-center p-8 text-muted">
           <p>
             Nenhuma partida programada para os torneios desta liga na data
             selecionada.
           </p>
         </div>
       ) : (
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: "1rem",
-            marginTop: "1rem",
-          }}
-        >
+        <div className="match-list">
           {matches.map((match) => (
             <MatchCard
               key={match.id}

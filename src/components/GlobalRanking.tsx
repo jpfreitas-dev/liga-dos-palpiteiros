@@ -76,9 +76,9 @@ export const GlobalRanking: React.FC<GlobalRankingProps> = ({
       className="ranking-container"
       aria-labelledby="global-ranking-title"
     >
-      <h2 id="global-ranking-title" className="sr-only">
-        Classificação Geral
-      </h2>
+      <header className="ranking-header">
+        <h2 id="global-ranking-title">Classificação Geral</h2>
+      </header>
 
       <ol className="ranking-list">
         {rankingData.map((user, index) => {

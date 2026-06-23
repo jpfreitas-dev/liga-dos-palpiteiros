@@ -1,7 +1,18 @@
+/* Container principal que garante a rolagem livre */
+.match-list-container {
+  flex: 1;
+  min-height: auto;
+  overflow: visible;
+  display: flex;
+  flex-direction: column;
+  -webkit-overflow-scrolling: touch;
+}
+
 .match-list {
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
+  margin-top: 1rem;
 }
 
 .match-card {

@@ -13,7 +13,7 @@
   overflow-y: auto; /* O scroll acontece APENAS AQUI */
   -webkit-overflow-scrolling: touch; /* Habilita a fluidez (inércia) no iOS */
   overscroll-behavior-y: contain; /* Evita que o scroll arraste o container pai */
-  padding-bottom: 300px; /* Garante que o último item não fique escondido sob a nav */
+  padding-bottom: 5rem; /* Garante que o último item não fique escondido sob a nav */
   scrollbar-width: none; /* Esconde scrollbar no Firefox */
 }
 

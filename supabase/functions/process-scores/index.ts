@@ -11,8 +11,6 @@ const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
 serve(async (_req) => {
   try {
     const { data: activeTournaments, error: tournamentsError } = await supabase
@@ -134,8 +132,6 @@ serve(async (_req) => {
           `Nenhuma partida encontrada para ${tournament.codigo_api}.`,
         );
       }
-
-      await sleep(6100);
     }
 
     return new Response(

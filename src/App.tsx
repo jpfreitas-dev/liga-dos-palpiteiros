@@ -40,7 +40,7 @@ const LeagueView: React.FC = () => {
   if (!leagueId) return <Navigate to="/ligas" />;
 
   return (
-    <>
+    <div className="league-view-shell">
       <header className="liga-header">
         <button className="btn-back" onClick={() => navigate("/ligas")}>
           Voltar
@@ -50,14 +50,16 @@ const LeagueView: React.FC = () => {
         </h2>
       </header>
 
-      {activeTab === "jogos" ? (
-        <MatchList leagueId={leagueId} />
-      ) : (
-        <Ranking
-          ligaId={leagueId}
-          onSelectUser={(id, name) => setSelectedUser({ id, name })}
-        />
-      )}
+      <div className="league-view-content">
+        {activeTab === "jogos" ? (
+          <MatchList leagueId={leagueId} />
+        ) : (
+          <Ranking
+            ligaId={leagueId}
+            onSelectUser={(id, name) => setSelectedUser({ id, name })}
+          />
+        )}
+      </div>
 
       {selectedUser && (
         <UserStats
@@ -82,7 +84,7 @@ const LeagueView: React.FC = () => {
           Ranking
         </button>
       </nav>
-    </>
+    </div>
   );
 };
 
