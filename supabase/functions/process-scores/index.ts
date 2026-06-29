@@ -155,12 +155,16 @@ async function calculateMatchPoints(
   actualScoreA: number,
   actualScoreB: number,
 ) {
+  // Busca os dados completos necessários para reconstruir a linha no upsert
   const { data: predictions } = await supabase
     .from("palpites")
-    .select("id, palpite_a, palpite_b, pontos_ganhos")
+    .select("id, usuario_id, partida_id, palpite_a, palpite_b, pontos_ganhos")
     .eq("partida_id", matchId);
 
   if (!predictions || predictions.length === 0) return;
+
+  // Array que armazenará os objetos modificados na memória RAM
+  const updatesToPerform = [];
 
   for (const prediction of predictions) {
     let points = 0;
@@ -169,24 +173,17 @@ async function calculateMatchPoints(
     const palpiteA = prediction.palpite_a;
     const palpiteB = prediction.palpite_b;
 
-    // Cálculos de saldo (diferença)
     const diffPalpite = palpiteA - palpiteB;
     const diffActual = actualScoreA - actualScoreB;
-
-    // Cálculos de saldo absoluto (ignorando quem ganhou, apenas a quantidade)
     const absDiffPalpite = Math.abs(diffPalpite);
     const absDiffActual = Math.abs(diffActual);
-
-    // Cálculos de vencedor (retorna 1 para A, -1 para B, e 0 para empate)
     const signPalpite = Math.sign(diffPalpite);
     const signActual = Math.sign(diffActual);
 
-    // Lógica de Atribuição de Pontos
     if (palpiteA === actualScoreA && palpiteB === actualScoreB) {
       points = 10;
       detalhes = "Placar Exato (Cravada)";
     } else if (diffPalpite === diffActual) {
-      // Se a diferença exata for igual, o usuário acertou o vencedor e o saldo automaticamente
       points = 7;
       detalhes = "Acertou o Vencedor e o Saldo";
     } else if (signPalpite === signActual) {
@@ -200,16 +197,34 @@ async function calculateMatchPoints(
       detalhes = "Acertou o Saldo Independente do Time";
     }
 
-    // Atualiza no banco de dados apenas se a pontuação atual for diferente
+    // Empurra a linha recalculada para o array apenas se houver mudança nos pontos
     if (prediction.pontos_ganhos !== points) {
-      await supabase
-        .from("palpites")
-        .update({
-          pontos_ganhos: points,
-          detalhe_pontuacao: detalhes,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", prediction.id);
+      updatesToPerform.push({
+        id: prediction.id,
+        usuario_id: prediction.usuario_id,
+        partida_id: prediction.partida_id,
+        palpite_a: prediction.palpite_a,
+        palpite_b: prediction.palpite_b,
+        pontos_ganhos: points,
+        detalhe_pontuacao: detalhes,
+        updated_at: new Date().toISOString(),
+      });
+    }
+  }
+
+  // Executa uma única requisição HTTP para o banco de dados processar todas as atualizações
+  if (updatesToPerform.length > 0) {
+    const { error } = await supabase.from("palpites").upsert(updatesToPerform);
+
+    if (error) {
+      console.error(
+        `Erro ao atualizar palpites em lote na partida ${matchId}:`,
+        error,
+      );
+    } else {
+      console.log(
+        `Sucesso: ${updatesToPerform.length} palpites atualizados na partida ${matchId}.`,
+      );
     }
   }
 }
